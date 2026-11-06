@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Vehicle Log - UNOPS Bangui</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#006699">
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <h1>Daily Vehicle Log</h1>
+      <span id="networkStatus" class="status-badge status-online">En ligne</span>
+    </div>
+    <div class="sync-bar">
+      <div>
+        <span id="pendingCount">0 saisie(s) en attente</span><br>
+        <small id="lastSync">Aucun envoi pour le moment</small>
+      </div>
+      <button id="btnSyncNow" class="sync-btn" type="button">Synchroniser</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="alertBox" class="notification hidden"></div>
+
+    <section id="loginScreen" class="card">
+      <h2>Identification</h2>
+      <p class="aide">Entrez votre code conducteur à 6 chiffres.</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="driverCodeInput" class="required">Code conducteur</label>
+          <input type="tel" id="driverCodeInput" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
+        </div>
+        <button type="submit" class="btn-primary">Valider mon code</button>
+      </form>
+    </section>
+
+    <section id="formScreen" class="card hidden">
+      <div class="driver-bar">
+        <div>
+          <span class="aide">Conducteur :</span><br>
+          <span id="displayDriverName" class="driver-name">-</span>
+        </div>
+        <button id="btnLogout" class="btn-link" type="button">Changer de conducteur</button>
+      </div>
+
+      <form id="logForm">
+        <div class="form-group">
+          <label for="vehiculeSelect" class="required">Véhicule utilisé</label>
+          <select id="vehiculeSelect" required>
+            <option value="">-- Sélectionnez le véhicule --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="kilometrageInput" class="required">Kilométrage actuel (km)</label>
+          <input type="number" id="kilometrageInput" inputmode="numeric" min="1" step="1" required>
+        </div>
+
+        <div class="form-group">
+          <label for="destinationInput" class="required">Destination du déplacement</label>
+          <input type="text" id="destinationInput" required>
+        </div>
+
+        <div class="form-group">
+          <label class="required">Niveau de carburant actuel</label>
+          <div class="fuel-grid">
+            <label><input type="radio" name="carburant" value="Plein/ Full" required> Plein/ Full</label>
+            <label><input type="radio" name="carburant" value="¾"> ¾</label>
+            <label><input type="radio" name="carburant" value="½"> ½</label>
+            <label><input type="radio" name="carburant" value="¼"> ¼</label>
+            <label><input type="radio" name="carburant" value="Vide/ Empty"> Vide/ Empty</label>
+            <label><input type="radio" name="carburant" value="Réserve / R"> Réserve / R</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="commentaireInput">Commentaire &amp; Anomalie constatée</label>
+          <textarea id="commentaireInput" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="photoInput">Photo preuve</label>
+          <input type="file" id="photoInput" accept="image/*" capture="environment">
+          <img id="photoPreview" class="photo-preview" alt="Aperçu de la photo">
+        </div>
+
+        <button type="submit" class="btn-primary" id="btnSubmit">Enregistrer la saisie</button>
+      </form>
+    </section>
+
+    <section id="historyScreen" class="card hidden">
+      <h2>Dernières saisies sur ce téléphone</h2>
+      <ul id="historyList" class="history-list"></ul>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
