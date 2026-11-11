@@ -659,3 +659,65 @@ dl.fiche { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-s
 dl.fiche dt { color: var(--texte-doux); }
 dl.fiche dd { font-weight: 600; word-break: break-word; }
 .modale-formulaire { max-height: 92vh; overflow-y: auto; }
+
+/* Données : outils, groupes par jour, pagination */
+
+.outils-donnees { display: flex; gap: 8px; margin-bottom: 10px; }
+.outils-donnees select { width: auto; padding: 10px 34px 10px 12px; font-size: 0.88rem; }
+.pastille-nombre { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--bleu); color: #fff; font-size: 0.75rem; text-align: center; }
+.groupe-jour { margin-bottom: 6px; }
+.groupe-jour h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 4px 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bleu-fonce);
+  text-transform: none;
+}
+.groupe-jour h3 span { font-size: 0.75rem; font-weight: 600; color: var(--texte-doux); background: var(--bleu-clair); padding: 1px 8px; border-radius: 999px; }
+.liste-saisies li { margin-bottom: 8px; }
+button.saisie-admin { margin-bottom: 0; padding: 12px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; }
+.badge .ic { width: 13px; height: 13px; }
+.heure { font-weight: 700; color: var(--texte) !important; }
+.ligne-info { display: flex; align-items: center; gap: 5px; color: var(--texte-doux); font-size: 0.82rem; min-width: 0; }
+.ligne-info .ic { width: 14px; height: 14px; color: var(--bleu); flex-shrink: 0; }
+.puces { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.puce { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: #f1f5fb; color: var(--texte); font-size: 0.75rem; font-weight: 600; }
+.puce .ic { width: 13px; height: 13px; color: var(--bleu); }
+.puce.alerte { background: var(--orange-clair); color: var(--orange); }
+.puce.alerte .ic { color: var(--orange); }
+
+.pagination { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.pagination button {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+  background: var(--carte);
+  color: var(--texte);
+  font: inherit;
+  font-weight: 600;
+}
+.pagination button.actif { background: var(--bleu); border-color: var(--bleu); color: #fff; }
+.pagination button:disabled { opacity: 0.4; }
+.pagination span { color: var(--texte-doux); padding: 0 2px; }
+.bouton-export {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 12px;
+  border: 1px dashed var(--bleu);
+  border-radius: 10px;
+  background: var(--carte);
+  color: var(--bleu);
+  font: inherit;
+  font-weight: 600;
+}
+.bouton-export:disabled { opacity: 0.6; }

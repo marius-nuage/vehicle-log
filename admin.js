@@ -350,6 +350,8 @@ function formulaireVehicule(vehicule) {
 
 let derniereReponseDonnees = null;
 let filtreTuile = 'tous';
+let pageDonnees = 1;
+let minuterieRecherche = null;
 
 const LIBELLES_TUILE = {
   aujourdhui: "Saisies d'aujourd'hui",
@@ -358,9 +360,18 @@ const LIBELLES_TUILE = {
   filtre: 'Résultats du filtre'
 };
 
-function dateDuJour() {
+function dateDuJour(decalageJours = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + decalageJours);
   // Le format sv-SE donne directement AAAA-MM-JJ, à l'heure du téléphone (Bangui).
-  return new Date().toLocaleDateString('sv-SE');
+  return date.toLocaleDateString('sv-SE');
+}
+
+function libelleJour(jour) {
+  if (jour === dateDuJour()) return "Aujourd'hui";
+  if (jour === dateDuJour(-1)) return 'Hier';
+  const texte = new Date(jour + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return texte.charAt(0).toUpperCase() + texte.slice(1);
 }
 
 async function ouvrirDonnees() {
@@ -373,6 +384,7 @@ async function ouvrirDonnees() {
   }
   if (vueActive !== 'donnees') return;
   filtreTuile = 'tous';
+  pageDonnees = 1;
   const options = (valeurs) => valeurs.map((v) => '<option>' + echapper(v) + '</option>').join('');
   vueAdmin.innerHTML =
     '<div class="indicateurs">' +
@@ -380,15 +392,23 @@ async function ouvrirDonnees() {
     '<button type="button" class="indicateur" data-tuile="enRoute"><small>Véhicules en route</small><strong id="indEnRoute">-</strong></button>' +
     '<button type="button" class="indicateur" data-tuile="tous"><small>Toutes les saisies</small><strong id="indTotal">-</strong></button>' +
     '</div>' +
-    '<details class="carte filtres"><summary>' + icone('i-search') + 'Filtrer les saisies</summary>' +
+    '<div class="outils-donnees">' +
+    '<div class="recherche">' + icone('i-search') + '<input type="search" id="fRecherche" placeholder="Véhicule, conducteur, destination..."></div>' +
+    '<select id="fOrdre" aria-label="Ordre"><option value="recent">Plus récentes</option><option value="ancien">Plus anciennes</option></select>' +
+    '</div>' +
+    '<details class="carte filtres"><summary>' + icone('i-chart') + 'Filtres avancés<span id="nbFiltres" class="pastille-nombre hidden"></span></summary>' +
     '<div class="grille-filtres">' +
     '<label>Du<input type="date" id="fDu"></label><label>Au<input type="date" id="fAu"></label>' +
     '<label>Véhicule<select id="fVehicule"><option value="">Tous</option>' + options(adminVehicules.map((v) => v.nom)) + '</select></label>' +
     '<label>Conducteur<select id="fConducteur"><option value="">Tous</option>' + options(adminConducteurs.map((c) => c.nom).sort((a, b) => a.localeCompare(b, 'fr'))) + '</select></label>' +
     '<label>Type<select id="fType"><option value="">Tous</option><option>Début du trajet</option><option>Fin du trajet</option></select></label>' +
-    '</div><button type="button" class="bouton-principal" id="btnFiltrer">Appliquer</button></details>' +
+    '<label>Par page<select id="fParPage"><option>10</option><option>20</option><option>50</option></select></label>' +
+    '</div><div class="boutons-modale"><button type="button" class="bouton-secondaire" id="btnReinitialiser">Réinitialiser</button>' +
+    '<button type="button" class="bouton-principal" id="btnFiltrer">Appliquer</button></div></details>' +
     '<div class="bandeau-filtre" id="bandeauFiltre"></div>' +
-    '<ul class="liste-saisies" id="listeSaisiesAdmin"></ul>';
+    '<div id="listeSaisiesAdmin"></div>' +
+    '<nav class="pagination hidden" id="paginationDonnees" aria-label="Pages"></nav>' +
+    '<button type="button" class="bouton-export" id="btnExporter">' + icone('i-list') + '<span>Exporter le résultat en CSV (Excel)</span></button>';
 
   vueAdmin.querySelectorAll('[data-tuile]').forEach((tuile) => {
     tuile.onclick = () => choisirTuile(tuile.dataset.tuile);
@@ -396,19 +416,40 @@ async function ouvrirDonnees() {
   $('btnFiltrer').onclick = () => {
     filtreTuile = 'filtre';
     vueAdmin.querySelector('.filtres').open = false;
-    chargerSaisies();
+    rechargerDepuisPage1();
   };
+  $('btnReinitialiser').onclick = () => {
+    viderFiltres();
+    choisirTuile('tous');
+  };
+  $('fOrdre').onchange = rechargerDepuisPage1;
+  $('fParPage').onchange = rechargerDepuisPage1;
+  // La recherche part 600 ms après la dernière touche, pour ne pas appeler le serveur à chaque lettre.
+  $('fRecherche').oninput = () => {
+    clearTimeout(minuterieRecherche);
+    minuterieRecherche = setTimeout(() => {
+      if (filtreTuile === 'enRoute') filtreTuile = 'tous';
+      rechargerDepuisPage1();
+    }, 600);
+  };
+  $('btnExporter').onclick = exporterCsv;
   chargerSaisies();
 }
 
 function viderFiltres() {
-  ['fDu', 'fAu', 'fVehicule', 'fConducteur', 'fType'].forEach((id) => { $(id).value = ''; });
+  ['fDu', 'fAu', 'fVehicule', 'fConducteur', 'fType', 'fRecherche'].forEach((id) => { $(id).value = ''; });
+}
+
+function rechargerDepuisPage1() {
+  pageDonnees = 1;
+  chargerSaisies();
 }
 
 function choisirTuile(tuile) {
   filtreTuile = tuile;
+  pageDonnees = 1;
   if (tuile === 'enRoute' && derniereReponseDonnees) {
-    dessinerSaisies(derniereReponseDonnees.enRoute);
+    dessinerSaisies();
     return;
   }
   viderFiltres();
@@ -419,59 +460,150 @@ function choisirTuile(tuile) {
   chargerSaisies();
 }
 
+function criteresDonnees() {
+  return {
+    du: $('fDu').value, au: $('fAu').value, vehicule: $('fVehicule').value,
+    conducteur: $('fConducteur').value, typeTrajet: $('fType').value,
+    recherche: $('fRecherche').value.trim(), ordre: $('fOrdre').value
+  };
+}
+
+function compterFiltres() {
+  const nombre = ['fDu', 'fAu', 'fVehicule', 'fConducteur', 'fType'].filter((id) => $(id).value).length;
+  $('nbFiltres').textContent = nombre;
+  $('nbFiltres').classList.toggle('hidden', nombre === 0);
+}
+
 async function chargerSaisies() {
   if (!navigator.onLine) return afficherHorsLigne();
+  compterFiltres();
   const liste = $('listeSaisiesAdmin');
-  liste.innerHTML = '<li class="carte etat-vide"><div class="chargement"></div></li>';
+  liste.innerHTML = '<div class="carte etat-vide"><div class="chargement"></div></div>';
+  $('paginationDonnees').classList.add('hidden');
   let reponse;
   try {
-    reponse = await appelAdmin('admin.saisies', {
-      du: $('fDu').value, au: $('fAu').value, vehicule: $('fVehicule').value,
-      conducteur: $('fConducteur').value, typeTrajet: $('fType').value
-    });
+    reponse = await appelAdmin('admin.saisies', { ...criteresDonnees(), page: pageDonnees, parPage: Number($('fParPage').value) });
   } catch (err) {
-    liste.innerHTML = '<li class="carte etat-vide">' + icone('i-alert') + '<p class="aide">' + echapper(err.message) + '</p></li>';
+    liste.innerHTML = '<div class="carte etat-vide">' + icone('i-alert') + '<p class="aide">' + echapper(err.message) + '</p></div>';
     return;
   }
   if (vueActive !== 'donnees') return;
 
   derniereReponseDonnees = reponse;
+  pageDonnees = reponse.page;
   $('indAujourdhui').textContent = reponse.aujourdhui;
   $('indEnRoute').textContent = reponse.enRoute.length;
-  if (filtreTuile === 'tous') $('indTotal').textContent = reponse.total;
-  dessinerSaisies(filtreTuile === 'enRoute' ? reponse.enRoute : reponse.saisies, reponse.total);
+  if (filtreTuile === 'tous' && !$('fRecherche').value) $('indTotal').textContent = reponse.total;
+  dessinerSaisies();
 }
 
-function dessinerSaisies(saisies, total) {
+function dessinerSaisies() {
+  const reponse = derniereReponseDonnees;
+  const enRoute = filtreTuile === 'enRoute';
+  const saisies = enRoute ? reponse.enRoute : reponse.saisies;
+  const total = enRoute ? saisies.length : reponse.total;
+
   vueAdmin.querySelectorAll('[data-tuile]').forEach((t) => t.classList.toggle('actif', t.dataset.tuile === filtreTuile));
-  const nombre = total == null ? saisies.length : total;
+  const debut = enRoute || !total ? 1 : (reponse.page - 1) * reponse.parPage + 1;
+  const fin = enRoute ? total : debut + saisies.length - 1;
   $('bandeauFiltre').innerHTML =
-    '<span>' + icone('i-list') + echapper(LIBELLES_TUILE[filtreTuile]) + ' : <strong>' + nombre + '</strong></span>' +
-    (filtreTuile === 'tous' ? '' : '<button type="button" id="btnEffacerFiltre">Tout afficher</button>');
+    '<span>' + icone('i-list') + echapper(LIBELLES_TUILE[filtreTuile]) +
+    (total ? ' · <strong>' + debut + '-' + fin + '</strong> sur <strong>' + total + '</strong>' : '') + '</span>' +
+    (filtreTuile === 'tous' && !$('fRecherche').value ? '' : '<button type="button" id="btnEffacerFiltre">Tout afficher</button>');
   if ($('btnEffacerFiltre')) $('btnEffacerFiltre').onclick = () => choisirTuile('tous');
 
-  const liste = $('listeSaisiesAdmin');
-  liste.innerHTML = saisies.map((s, i) =>
-    '<li><button type="button" class="carte saisie-admin" data-index="' + i + '">' +
-    '<span class="miniature"' + (s.photoId ? ' data-photo="' + echapper(s.photoId) + '"' : '') + '>' +
-    (s.photoId ? icone('i-camera') : '<small>Sans photo</small>') + '</span>' +
-    '<span class="saisie-corps">' +
-    '<span class="saisie-entete"><span class="badge ' + (s.typeTrajet === 'Fin du trajet' ? 'fin' : 'debut') + '">' + echapper(s.typeTrajet || 'Sans type') + '</span>' +
-    '<small>' + echapper(s.dateSaisie.slice(0, 16)) + '</small></span>' +
-    '<strong>' + echapper(s.vehicule) + '</strong>' +
-    '<small>' + echapper(s.conducteur) + '</small>' +
-    '<small>' + echapper(s.kilometrage) + ' km · ' + echapper(s.destination) + ' · carburant ' + echapper(s.carburant) + '</small>' +
-    (s.commentaire ? '<small class="commentaire-court">' + icone('i-alert') + echapper(s.commentaire) + '</small>' : '') +
-    '</span></button></li>'
-  ).join('') || '<li class="carte etat-vide"><p class="aide">Aucune saisie à afficher.</p></li>';
-
-  if (total != null && total > saisies.length) {
-    liste.insertAdjacentHTML('beforeend', '<li class="aide">Les ' + saisies.length + ' plus récentes sur ' + total + ' sont affichées. Resserrez le filtre pour voir les autres.</li>');
+  // Les saisies d'une même journée sont regroupées sous un titre de date.
+  const groupes = [];
+  for (const s of saisies) {
+    const jour = s.dateSaisie.slice(0, 10);
+    if (!groupes.length || groupes[groupes.length - 1].jour !== jour) groupes.push({ jour, saisies: [] });
+    groupes[groupes.length - 1].saisies.push(s);
   }
+  const liste = $('listeSaisiesAdmin');
+  liste.innerHTML = groupes.map((g) =>
+    '<section class="groupe-jour"><h3>' + echapper(libelleJour(g.jour)) + '<span>' + g.saisies.length + '</span></h3>' +
+    '<ul class="liste-saisies">' + g.saisies.map((s) => carteSaisie(s, saisies.indexOf(s))).join('') + '</ul></section>'
+  ).join('') || '<div class="carte etat-vide">' + icone('i-search') + '<p class="aide">Aucune saisie ne correspond.</p></div>';
+
   liste.querySelectorAll('.saisie-admin').forEach((carte) => {
     carte.onclick = () => ouvrirFicheSaisie(saisies[Number(carte.dataset.index)]);
   });
+  dessinerPagination(enRoute ? 1 : reponse.pages);
+  $('btnExporter').classList.toggle('hidden', enRoute || !total);
   observerMiniatures();
+}
+
+function carteSaisie(s, index) {
+  const fin = s.typeTrajet === 'Fin du trajet';
+  return '<li><button type="button" class="carte saisie-admin" data-index="' + index + '">' +
+    '<span class="miniature"' + (s.photoId ? ' data-photo="' + echapper(s.photoId) + '"' : '') + '>' +
+    (s.photoId ? icone('i-camera') : '<small>Sans photo</small>') + '</span>' +
+    '<span class="saisie-corps">' +
+    '<span class="saisie-entete"><span class="badge ' + (fin ? 'fin' : 'debut') + '">' + icone(fin ? 'i-flag' : 'i-start') + echapper(fin ? 'Fin' : s.typeTrajet ? 'Début' : 'Sans type') + '</span>' +
+    '<small class="heure">' + echapper(s.dateSaisie.slice(11, 16)) + '</small></span>' +
+    '<strong>' + echapper(s.vehicule) + '</strong>' +
+    '<span class="ligne-info">' + icone('i-user') + echapper(s.conducteur) + '</span>' +
+    '<span class="ligne-info">' + icone('i-pin') + echapper(s.destination) + '</span>' +
+    '<span class="puces"><span class="puce">' + icone('i-gauge') + echapper(Number(s.kilometrage).toLocaleString('fr-FR')) + ' km</span>' +
+    '<span class="puce">' + icone('i-fuel') + echapper(s.carburant) + '</span>' +
+    (s.commentaire ? '<span class="puce alerte">' + icone('i-alert') + 'Commentaire</span>' : '') + '</span>' +
+    '</span></button></li>';
+}
+
+function dessinerPagination(pages) {
+  const nav = $('paginationDonnees');
+  if (pages <= 1) {
+    nav.classList.add('hidden');
+    return;
+  }
+  // Pages affichées : la première, la dernière, et deux de chaque côté de la page courante.
+  const numeros = [];
+  for (let p = 1; p <= pages; p++) {
+    if (p === 1 || p === pages || Math.abs(p - pageDonnees) <= 2) numeros.push(p);
+    else if (numeros[numeros.length - 1] !== '…') numeros.push('…');
+  }
+  nav.innerHTML =
+    '<button type="button" data-page="' + (pageDonnees - 1) + '"' + (pageDonnees === 1 ? ' disabled' : '') + ' aria-label="Page précédente">‹</button>' +
+    numeros.map((p) => p === '…'
+      ? '<span>…</span>'
+      : '<button type="button" data-page="' + p + '"' + (p === pageDonnees ? ' class="actif" aria-current="page"' : '') + '>' + p + '</button>').join('') +
+    '<button type="button" data-page="' + (pageDonnees + 1) + '"' + (pageDonnees === pages ? ' disabled' : '') + ' aria-label="Page suivante">›</button>';
+  nav.classList.remove('hidden');
+  nav.querySelectorAll('button[data-page]').forEach((b) => {
+    b.onclick = () => {
+      pageDonnees = Number(b.dataset.page);
+      chargerSaisies();
+      vueAdmin.scrollIntoView({ behavior: 'smooth' });
+    };
+  });
+}
+
+async function exporterCsv() {
+  if (!navigator.onLine) return afficherMessage("Pas de connexion Internet : l'export est impossible.");
+  const bouton = $('btnExporter');
+  bouton.disabled = true;
+  changerTexteBouton(bouton, 'Préparation du fichier...');
+  try {
+    const reponse = await appelAdmin('admin.saisies', { ...criteresDonnees(), export: true });
+    const colonnes = ['Date/heure saisie', 'Date/heure réception', 'Type de trajet', 'Véhicule', 'Conducteur', 'Kilométrage', 'Destination', 'Carburant', 'Commentaire', 'Photo', 'ID saisie'];
+    const champs = ['dateSaisie', 'dateReception', 'typeTrajet', 'vehicule', 'conducteur', 'kilometrage', 'destination', 'carburant', 'commentaire', 'photo', 'id'];
+    const cellule = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    // Point-virgule et BOM UTF-8 : Excel en français ouvre alors le fichier avec les bonnes colonnes et les accents.
+    const contenu = '﻿' + [colonnes.map(cellule).join(';')]
+      .concat(reponse.saisies.map((s) => champs.map((c) => cellule(s[c])).join(';')))
+      .join('\r\n');
+    const lien = document.createElement('a');
+    lien.href = URL.createObjectURL(new Blob([contenu], { type: 'text/csv;charset=utf-8' }));
+    lien.download = 'daily-vehicle-log_' + dateDuJour() + '.csv';
+    lien.click();
+    setTimeout(() => URL.revokeObjectURL(lien.href), 5000);
+    afficherMessage(reponse.saisies.length + ' saisie(s) exportée(s).', 'success');
+  } catch (err) {
+    afficherMessage('Export impossible : ' + err.message);
+  } finally {
+    bouton.disabled = false;
+    changerTexteBouton(bouton, 'Exporter le résultat en CSV (Excel)');
+  }
 }
 
 // ---------- Photos ----------
