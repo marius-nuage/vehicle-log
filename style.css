@@ -450,3 +450,159 @@ input:focus, select:focus, textarea:focus {
 
 /* Le message d'erreur remplace l'aide quand le commentaire manque. */
 .carte.en-erreur #commentaireAide { display: none; }
+
+/* Navigation administrateur */
+
+.onglets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: var(--carte);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: 4px;
+  margin-bottom: 12px;
+}
+.onglets button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  padding: 8px 2px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texte-doux);
+}
+.onglets button.actif { background: var(--bleu-clair); color: var(--bleu-fonce); }
+
+/* Listes d'administration */
+
+.barre-admin { display: flex; gap: 8px; margin-bottom: 8px; }
+.recherche {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--carte);
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+  padding: 0 12px;
+  color: var(--texte-doux);
+}
+.recherche input { border: none; background: none; padding: 11px 0; width: 100%; font: inherit; font-size: 1rem; color: var(--texte); }
+.recherche input:focus { outline: none; box-shadow: none; }
+.bouton-ajout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 10px;
+  padding: 0 14px;
+  background: var(--bleu);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+}
+.compteur-liste { margin: 0 4px 8px; }
+.liste-admin, .liste-saisies, .liste-simple { list-style: none; }
+.ligne-admin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--carte);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font: inherit;
+  color: var(--texte);
+}
+.ligne-texte { flex: 1; min-width: 0; }
+.ligne-texte strong { display: block; font-size: 0.95rem; }
+.ligne-texte small { color: var(--texte-doux); font-size: 0.8rem; }
+.pastille.admin { background: #fdf1df; color: var(--orange); }
+.etat { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+.etat.actif { background: var(--vert-clair); color: var(--vert); }
+.etat.inactif { background: #eceff3; color: var(--texte-doux); }
+
+.etat-vide { text-align: center; padding: 28px 16px; color: var(--texte-doux); }
+.etat-vide .ic { width: 36px; height: 36px; color: var(--bleu); margin-bottom: 8px; }
+.etat-vide h2 { color: var(--texte); margin-bottom: 4px; }
+.etat-vide .bouton-principal { margin-top: 14px; }
+.chargement {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 8px;
+  border: 3px solid var(--bleu-clair);
+  border-top-color: var(--bleu);
+  border-radius: 50%;
+  animation: tourne 0.8s linear infinite;
+}
+
+/* Fenêtre de formulaire admin */
+
+.modale-formulaire { text-align: left; }
+.modale-formulaire h2 { margin-bottom: 14px; }
+.modale-formulaire .etiquette { margin: 12px 0 6px; }
+.modale-formulaire .modale-icone { display: grid; margin: 0 auto 10px; }
+.modale-formulaire .modale-icone + h2, .modale-formulaire .modale-icone ~ .aide { text-align: center; }
+.modale-icone.succes { background: var(--vert-clair); color: var(--vert); }
+.case { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 0.95rem; }
+.case input { width: 20px; height: 20px; accent-color: var(--bleu); }
+.erreur-modale { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--rouge-clair); color: var(--rouge); font-size: 0.88rem; font-weight: 600; }
+.boutons-modale { display: flex; gap: 8px; margin-top: 18px; }
+.boutons-modale .bouton-principal { flex: 1; width: auto; padding: 12px; font-size: 0.95rem; }
+.bouton-secondaire, .bouton-danger, .bouton-danger-discret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.bouton-secondaire { background: #fff; border: 1px solid var(--bordure); color: var(--texte); }
+.bouton-danger { flex: 1; background: var(--rouge); border: none; color: #fff; }
+.bouton-danger-discret { background: var(--rouge-clair); border: 1px solid #f3c7c1; color: var(--rouge); }
+.code-affiche {
+  margin: 12px 0;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--bleu-fonce);
+}
+.modale-formulaire > .bouton-principal { margin-top: 14px; }
+
+/* Données */
+
+.indicateurs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.indicateur { background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 10px; }
+.indicateur small { display: block; color: var(--texte-doux); font-size: 0.72rem; line-height: 1.2; }
+.indicateur strong { font-size: 1.5rem; color: var(--bleu-fonce); }
+.liste-simple li { padding: 8px 0; border-top: 1px solid #edf1f4; }
+.liste-simple li:first-child { border-top: none; }
+.liste-simple strong { display: block; font-size: 0.9rem; }
+.liste-simple small { color: var(--texte-doux); }
+.filtres summary { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--bleu-fonce); cursor: pointer; list-style: none; }
+.filtres summary::-webkit-details-marker { display: none; }
+.grille-filtres { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+.grille-filtres label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--texte-doux); }
+.grille-filtres input[type="date"] { font: inherit; padding: 10px; border: 1px solid var(--bordure); border-radius: 10px; background: #fbfcfd; }
+.grille-filtres select { padding: 10px 30px 10px 10px; font-size: 0.9rem; }
+.saisie-admin strong { display: block; margin: 6px 0; }
+.saisie-entete { display: flex; justify-content: space-between; align-items: center; }
+.saisie-entete small { color: var(--texte-doux); }
+.badge { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+.badge.debut { background: var(--vert-clair); color: var(--vert); }
+.badge.fin { background: var(--bleu-clair); color: var(--bleu-fonce); }
+.saisie-admin dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 0.87rem; }
+.saisie-admin dt { color: var(--texte-doux); }
+.lien-photo { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: var(--bleu); font-weight: 600; text-decoration: none; }

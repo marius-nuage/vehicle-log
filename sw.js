@@ -1,12 +1,13 @@
 // Changer ce numéro à chaque modification d'un fichier de l'application :
 // c'est ce qui force les téléphones à télécharger la nouvelle version.
-const VERSION_CACHE = 'vehicle-log-v4';
+const VERSION_CACHE = 'vehicle-log-v5';
 
 const FICHIERS_APPLICATION = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './admin.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

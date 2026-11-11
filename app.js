@@ -184,7 +184,7 @@ async function rafraichirAffichage() {
     texte.appendChild(detail);
     listeHistorique.appendChild(ligne);
   }
-  ecranHistorique.classList.toggle('hidden', recentes.length === 0);
+  ecranHistorique.classList.toggle('hidden', recentes.length === 0 || !session || vueActive !== 'saisie');
 }
 
 function remplirListe(liste, valeurs, valeurParDefaut) {
@@ -206,7 +206,7 @@ function afficherEcranSaisie() {
   remplirListe(listeVehicules, session.vehicules, '');
   afficherAideCommentaire();
   ecranCode.classList.add('hidden');
-  ecranSaisie.classList.remove('hidden');
+  mettreAJourNavigation();
 }
 
 // ---------- Réseau ----------
@@ -231,8 +231,8 @@ function demanderReferentiel(code) {
 formulaireCode.addEventListener('submit', async (e) => {
   e.preventDefault();
   const code = champCode.value.trim();
-  if (!/^\d{6}$/.test(code)) {
-    afficherMessage('Le code doit comporter exactement 6 chiffres.');
+  if (!/^\d{6,8}$/.test(code)) {
+    afficherMessage('Le code doit comporter 6 chiffres (8 pour un administrateur).');
     return;
   }
 
@@ -244,7 +244,7 @@ formulaireCode.addEventListener('submit', async (e) => {
         afficherMessage(reponse.erreur || 'Code non reconnu.');
         return;
       }
-      session = { code: code, nom: reponse.conducteur, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
+      session = { code: code, nom: reponse.conducteur, role: reponse.role, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
       await enregistrerConducteur(session);
       ouvrirSession();
       return;
@@ -273,7 +273,7 @@ function ouvrirSession() {
 boutonChangerConducteur.addEventListener('click', () => {
   ecrireSession(null);
   session = null;
-  ecranSaisie.classList.add('hidden');
+  mettreAJourNavigation();
   ecranCode.classList.remove('hidden');
 });
 
@@ -530,7 +530,7 @@ async function mettreAJourReferentiel() {
   try {
     const reponse = await demanderReferentiel(session.code);
     if (!reponse.ok) return;
-    session = { code: session.code, nom: reponse.conducteur, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
+    session = { code: session.code, nom: reponse.conducteur, role: reponse.role, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
     ecrireSession(session);
     await enregistrerConducteur(session);
     afficherEcranSaisie();
