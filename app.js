@@ -10,6 +10,7 @@ const INTERVALLE_SYNCHRO_MS = 60 * 1000;
 const DELAI_MAX_REQUETE_MS = 45 * 1000;
 const TAILLE_MAX_PHOTO_PX = 1280;
 const NB_SAISIES_HISTORIQUE = 10;
+const VEHICULE_AUTRE = 'Autre (à préciser en commentaire)';
 
 const STATUT = { EN_ATTENTE: 'en_attente', ENVOYEE: 'envoyee', REFUSEE: 'refusee' };
 
@@ -90,6 +91,9 @@ const champDestination = $('destinationInput');
 const champCommentaire = $('commentaireInput');
 const champPhoto = $('photoInput');
 const apercuPhoto = $('photoPreview');
+const libellePhoto = $('photoLibelle');
+const libelleCommentaire = $('commentaireLabel');
+const aideCommentaire = $('commentaireAide');
 const boutonEnregistrer = $('btnSubmit');
 
 // ---------- Démarrage ----------
@@ -129,8 +133,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 function afficherEtatReseau() {
   const enLigne = navigator.onLine;
-  etatReseau.textContent = enLigne ? 'En ligne' : 'Hors ligne';
-  etatReseau.className = 'status-badge ' + (enLigne ? 'status-online' : 'status-offline');
+  etatReseau.className = 'reseau ' + (enLigne ? 'en-ligne' : 'hors-ligne');
+  etatReseau.querySelector('use').setAttribute('href', enLigne ? '#i-wifi' : '#i-wifi-off');
+  etatReseau.querySelector('span').textContent = enLigne ? 'En ligne' : 'Hors ligne';
+}
+
+function changerTexteBouton(bouton, texte) {
+  bouton.querySelector('span').textContent = texte;
 }
 
 function afficherDerniereSynchro() {
@@ -160,15 +169,16 @@ async function rafraichirAffichage() {
   listeHistorique.innerHTML = '';
   for (const saisie of recentes) {
     const ligne = document.createElement('li');
-    ligne.className = 'history-item ' + saisie.statut;
+    ligne.className = saisie.statut;
+    const icone = { en_attente: '#i-sync', envoyee: '#i-save', refusee: '#i-alert' }[saisie.statut];
+    ligne.innerHTML = '<svg class="ic"><use href="' + icone + '"/></svg><div></div>';
+    const texte = ligne.querySelector('div');
     const quand = new Date(saisie.dateSaisie).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
     const libelleStatut = { en_attente: 'En attente', envoyee: 'Envoyée', refusee: 'Refusée' }[saisie.statut];
-    ligne.textContent = quand + ' · ' + saisie.vehicule + ' · ' + saisie.kilometrage + ' km · ' + libelleStatut;
-    if (saisie.erreur) {
-      const detail = document.createElement('small');
-      detail.textContent = saisie.erreur;
-      ligne.appendChild(detail);
-    }
+    texte.textContent = (saisie.typeTrajet || '') + ' · ' + saisie.kilometrage + ' km · ' + libelleStatut;
+    const detail = document.createElement('small');
+    detail.textContent = quand + ' · ' + saisie.vehicule + (saisie.erreur ? ' · ' + saisie.erreur : '');
+    texte.appendChild(detail);
     listeHistorique.appendChild(ligne);
   }
   ecranHistorique.classList.toggle('hidden', recentes.length === 0);
@@ -177,7 +187,7 @@ async function rafraichirAffichage() {
 function afficherEcranSaisie() {
   nomConducteur.textContent = session.nom;
   const choixActuel = listeVehicules.value;
-  listeVehicules.innerHTML = '<option value="">-- Sélectionnez le véhicule --</option>';
+  listeVehicules.innerHTML = '<option value="">Sélectionner</option>';
   for (const vehicule of session.vehicules) {
     const option = document.createElement('option');
     option.value = vehicule;
@@ -185,6 +195,7 @@ function afficherEcranSaisie() {
     listeVehicules.appendChild(option);
   }
   listeVehicules.value = session.vehicules.includes(choixActuel) ? choixActuel : '';
+  afficherAideCommentaire();
   ecranCode.classList.add('hidden');
   ecranSaisie.classList.remove('hidden');
 }
@@ -257,27 +268,40 @@ boutonChangerConducteur.addEventListener('click', () => {
   ecranCode.classList.remove('hidden');
 });
 
+// ---------- Véhicule « Autre » ----------
+
+// Pour un véhicule hors liste, le commentaire est le seul endroit où l'identifier.
+function afficherAideCommentaire() {
+  const autre = listeVehicules.value === VEHICULE_AUTRE;
+  libelleCommentaire.classList.toggle('requis', autre);
+  aideCommentaire.classList.toggle('hidden', !autre);
+}
+
+listeVehicules.addEventListener('change', afficherAideCommentaire);
+
 // ---------- Photo ----------
 
 champPhoto.addEventListener('change', async () => {
   const fichier = champPhoto.files[0];
   photoCompressee = '';
   apercuPhoto.style.display = 'none';
+  libellePhoto.textContent = 'Prendre une photo (compteur, véhicule)';
   if (!fichier) return;
 
   // Empêche d'enregistrer avant la fin de la compression, sinon la photo serait perdue.
   boutonEnregistrer.disabled = true;
-  boutonEnregistrer.textContent = 'Préparation de la photo...';
+  changerTexteBouton(boutonEnregistrer, 'Préparation de la photo...');
   try {
     photoCompressee = await compresserPhoto(fichier);
     apercuPhoto.src = photoCompressee;
     apercuPhoto.style.display = 'block';
+    libellePhoto.textContent = 'Photo prête. Toucher pour la reprendre';
   } catch (_) {
     champPhoto.value = '';
     afficherMessage('Impossible de lire cette photo. Reprenez-la.');
   } finally {
     boutonEnregistrer.disabled = false;
-    boutonEnregistrer.textContent = 'Enregistrer la saisie';
+    changerTexteBouton(boutonEnregistrer, 'Enregistrer la saisie');
   }
 });
 
@@ -309,8 +333,12 @@ formulaireSaisie.addEventListener('submit', async (e) => {
   const kilometrage = Number(champKilometrage.value);
   const destination = champDestination.value.trim();
   const carburant = document.querySelector('input[name="carburant"]:checked');
+  const typeTrajet = document.querySelector('input[name="typeTrajet"]:checked');
+  const commentaire = champCommentaire.value.trim();
 
+  if (!typeTrajet) return afficherMessage('Indiquez s\'il s\'agit du début ou de la fin du trajet.');
   if (!vehicule) return afficherMessage('Sélectionnez un véhicule.');
+  if (vehicule === VEHICULE_AUTRE && !commentaire) return afficherMessage('Véhicule « Autre » : précisez le véhicule dans le commentaire.');
   if (!Number.isInteger(kilometrage) || kilometrage <= 0) return afficherMessage('Kilométrage invalide.');
   if (!destination) return afficherMessage('Indiquez la destination.');
   if (!carburant) return afficherMessage('Indiquez le niveau de carburant.');
@@ -327,11 +355,12 @@ formulaireSaisie.addEventListener('submit', async (e) => {
       id: crypto.randomUUID(),
       code: session.code,
       dateSaisie: new Date().toISOString(),
+      typeTrajet: typeTrajet.value,
       vehicule: vehicule,
       kilometrage: kilometrage,
       destination: destination,
       carburant: carburant.value,
-      commentaire: champCommentaire.value.trim(),
+      commentaire: commentaire,
       photoBase64: photoCompressee,
       statut: STATUT.EN_ATTENTE
     });
@@ -344,6 +373,9 @@ formulaireSaisie.addEventListener('submit', async (e) => {
   listeVehicules.value = vehicule;
   photoCompressee = '';
   apercuPhoto.style.display = 'none';
+  libellePhoto.textContent = 'Prendre une photo (compteur, véhicule)';
+  afficherAideCommentaire();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   afficherMessage('Saisie enregistrée sur le téléphone.', 'success');
   await rafraichirAffichage();
   if (navigator.onLine) synchroniser(true);
@@ -362,7 +394,7 @@ async function synchroniser(automatique) {
 
   synchroEnCours = true;
   boutonSynchro.disabled = true;
-  boutonSynchro.textContent = 'Envoi...';
+  changerTexteBouton(boutonSynchro, 'Envoi...');
   let envoyees = 0;
   let coupure = false;
 
@@ -406,7 +438,7 @@ async function synchroniser(automatique) {
   } finally {
     synchroEnCours = false;
     boutonSynchro.disabled = false;
-    boutonSynchro.textContent = 'Synchroniser';
+    changerTexteBouton(boutonSynchro, 'Synchroniser');
     afficherDerniereSynchro();
     await rafraichirAffichage();
   }

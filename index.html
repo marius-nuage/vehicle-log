@@ -2,103 +2,153 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Daily Vehicle Log - UNOPS Bangui</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
-  <meta name="theme-color" content="#006699">
+  <meta name="theme-color" content="#0b4f7c">
 </head>
 <body>
 
-  <header>
-    <div class="header-top">
-      <h1>Daily Vehicle Log</h1>
-      <span id="networkStatus" class="status-badge status-online">En ligne</span>
-    </div>
-    <div class="sync-bar">
+  <!-- Icônes intégrées dans la page : elles restent disponibles hors ligne, sans police ni CDN. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-car" viewBox="0 0 24 24"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2m-4 0H9m-6-6h15m-6 0V6"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></symbol>
+      <symbol id="i-gauge" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1"/><path d="M13.4 10.6L16 8M7 12a5 5 0 0 1 5-5"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><circle cx="12" cy="11" r="3"/><path d="M17.66 16.66l-4.25 4.24a2 2 0 0 1-2.82 0l-4.25-4.24a8 8 0 1 1 11.32 0z"/></symbol>
+      <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M14 11h1a2 2 0 0 1 2 2v3a1.5 1.5 0 0 0 3 0V9l-3-3"/><path d="M4 20V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14M3 20h12M18 7v1a1 1 0 0 0 1 1h1M4 11h10"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 9v4M12 16h.01"/><path d="M10.36 3.59L2.26 17.13A1.9 1.9 0 0 0 3.89 20h16.22a1.9 1.9 0 0 0 1.63-2.87L13.64 3.59a1.9 1.9 0 0 0-3.28 0z"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="M5 7h1a2 2 0 0 0 2-2 1 1 0 0 1 1-1h6a1 1 0 0 1 1 1 2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2"/><circle cx="12" cy="13" r="3"/></symbol>
+      <symbol id="i-start" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 5a5 5 0 0 1 7 0 5 5 0 0 0 7 0v9a5 5 0 0 1-7 0 5 5 0 0 0-7 0V5zM5 21v-7"/></symbol>
+      <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"/></symbol>
+      <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M12 18h.01M9.17 15.17a4 4 0 0 1 5.66 0M6.34 12.34a8 8 0 0 1 11.32 0M3.52 9.52a12 12 0 0 1 16.96 0"/></symbol>
+      <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 18h.01M9.17 15.17a4 4 0 0 1 5.66 0M6.34 12.34a8 8 0 0 1 4.27-2.22M3.52 9.52a12 12 0 0 1 3.7-2.5M3 3l18 18"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="16" r="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2M9 12h12l-3-3m0 6l3-3"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M5 6v.01M5 12v.01M5 18v.01"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="entete">
+    <div class="entete-haut">
       <div>
-        <span id="pendingCount">0 saisie(s) en attente</span><br>
+        <div class="entete-bureau">UNOPS Bangui</div>
+        <h1>Daily Vehicle Log</h1>
+      </div>
+      <span id="networkStatus" class="reseau en-ligne">
+        <svg class="ic"><use href="#i-wifi"/></svg><span>En ligne</span>
+      </span>
+    </div>
+    <div class="entete-synchro">
+      <div>
+        <div id="pendingCount" class="attente">0 saisie(s) en attente</div>
         <small id="lastSync">Aucun envoi pour le moment</small>
       </div>
-      <button id="btnSyncNow" class="sync-btn" type="button">Synchroniser</button>
+      <button id="btnSyncNow" class="bouton-synchro" type="button">
+        <svg class="ic"><use href="#i-sync"/></svg><span>Synchroniser</span>
+      </button>
     </div>
   </header>
 
-  <div class="container">
-    <div id="alertBox" class="notification hidden"></div>
+  <main class="page">
+    <div id="alertBox" class="notification hidden" role="status"></div>
 
-    <section id="loginScreen" class="card">
-      <h2>Identification</h2>
-      <p class="aide">Entrez votre code conducteur à 6 chiffres.</p>
+    <section id="loginScreen" class="carte">
+      <div class="carte-titre"><svg class="ic"><use href="#i-lock"/></svg><h2>Identification</h2></div>
+      <p class="aide">Entrez votre code conducteur à 6 chiffres. Une connexion Internet est nécessaire la première fois.</p>
       <form id="loginForm">
-        <div class="form-group">
-          <label for="driverCodeInput" class="required">Code conducteur</label>
-          <input type="tel" id="driverCodeInput" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
-        </div>
-        <button type="submit" class="btn-primary">Valider mon code</button>
+        <input type="tel" id="driverCodeInput" class="champ-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required autocomplete="off" aria-label="Code conducteur" placeholder="••••••">
+        <button type="submit" class="bouton-principal">Valider mon code</button>
       </form>
     </section>
 
-    <section id="formScreen" class="card hidden">
-      <div class="driver-bar">
-        <div>
-          <span class="aide">Conducteur :</span><br>
-          <span id="displayDriverName" class="driver-name">-</span>
+    <section id="formScreen" class="hidden">
+      <div class="conducteur">
+        <span class="pastille"><svg class="ic"><use href="#i-user"/></svg></span>
+        <div class="conducteur-nom">
+          <small>Conducteur</small>
+          <span id="displayDriverName">-</span>
         </div>
-        <button id="btnLogout" class="btn-link" type="button">Changer de conducteur</button>
+        <button id="btnLogout" class="bouton-discret" type="button" aria-label="Changer de conducteur">
+          <svg class="ic"><use href="#i-logout"/></svg><span>Changer</span>
+        </button>
       </div>
 
-      <form id="logForm">
-        <div class="form-group">
-          <label for="vehiculeSelect" class="required">Véhicule utilisé</label>
+      <form id="logForm" novalidate>
+        <fieldset class="carte">
+          <legend class="etiquette requis"><svg class="ic"><use href="#i-start"/></svg>Type d'enregistrement du trajet</legend>
+          <div class="choix-trajet">
+            <label class="option-trajet debut">
+              <input type="radio" name="typeTrajet" value="Début du trajet" required>
+              <svg class="ic grand"><use href="#i-start"/></svg><span>Début du trajet</span>
+            </label>
+            <label class="option-trajet fin">
+              <input type="radio" name="typeTrajet" value="Fin du trajet">
+              <svg class="ic grand"><use href="#i-flag"/></svg><span>Fin du trajet</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="carte">
+          <label for="vehiculeSelect" class="etiquette requis"><svg class="ic"><use href="#i-car"/></svg>Véhicule utilisé</label>
           <select id="vehiculeSelect" required>
-            <option value="">-- Sélectionnez le véhicule --</option>
+            <option value="">Sélectionner</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label for="kilometrageInput" class="required">Kilométrage actuel (km)</label>
-          <input type="number" id="kilometrageInput" inputmode="numeric" min="1" step="1" required>
+        <div class="carte">
+          <label for="kilometrageInput" class="etiquette requis"><svg class="ic"><use href="#i-gauge"/></svg>Kilométrage actuel (km)</label>
+          <input type="number" id="kilometrageInput" inputmode="numeric" min="1" step="1" required placeholder="Ex. 154200">
         </div>
 
-        <div class="form-group">
-          <label for="destinationInput" class="required">Destination du déplacement</label>
-          <input type="text" id="destinationInput" required>
+        <div class="carte">
+          <label for="destinationInput" class="etiquette requis"><svg class="ic"><use href="#i-pin"/></svg>Destination du déplacement</label>
+          <input type="text" id="destinationInput" required placeholder="Ex. Bureau UNOPS, PK12">
         </div>
 
-        <div class="form-group">
-          <label class="required">Niveau de carburant actuel</label>
-          <div class="fuel-grid">
-            <label><input type="radio" name="carburant" value="Plein/ Full" required> Plein/ Full</label>
-            <label><input type="radio" name="carburant" value="¾"> ¾</label>
-            <label><input type="radio" name="carburant" value="½"> ½</label>
-            <label><input type="radio" name="carburant" value="¼"> ¼</label>
-            <label><input type="radio" name="carburant" value="Vide/ Empty"> Vide/ Empty</label>
-            <label><input type="radio" name="carburant" value="Réserve / R"> Réserve / R</label>
+        <fieldset class="carte">
+          <legend class="etiquette requis"><svg class="ic"><use href="#i-fuel"/></svg>Niveau de carburant actuel</legend>
+          <div class="jauges">
+            <label class="jauge"><input type="radio" name="carburant" value="Plein/ Full" required><span class="barre" style="--niveau:100%"></span><span>Plein / Full</span></label>
+            <label class="jauge"><input type="radio" name="carburant" value="¾"><span class="barre" style="--niveau:75%"></span><span>¾</span></label>
+            <label class="jauge"><input type="radio" name="carburant" value="½"><span class="barre" style="--niveau:50%"></span><span>½</span></label>
+            <label class="jauge"><input type="radio" name="carburant" value="¼"><span class="barre" style="--niveau:25%"></span><span>¼</span></label>
+            <label class="jauge"><input type="radio" name="carburant" value="Vide/ Empty"><span class="barre" style="--niveau:0%"></span><span>Vide / Empty</span></label>
+            <label class="jauge reserve"><input type="radio" name="carburant" value="Réserve / R"><span class="barre" style="--niveau:8%"></span><span>Réserve / R</span></label>
           </div>
+        </fieldset>
+
+        <div class="carte">
+          <label for="commentaireInput" id="commentaireLabel" class="etiquette"><svg class="ic"><use href="#i-alert"/></svg>Commentaire &amp; anomalie constatée</label>
+          <textarea id="commentaireInput" rows="3" placeholder="Bruit anormal, voyant allumé, pneu..."></textarea>
+          <small id="commentaireAide" class="aide hidden">Véhicule « Autre » : indiquez ici l'immatriculation et le modèle.</small>
         </div>
 
-        <div class="form-group">
-          <label for="commentaireInput">Commentaire &amp; Anomalie constatée</label>
-          <textarea id="commentaireInput" rows="3"></textarea>
+        <div class="carte">
+          <span class="etiquette"><svg class="ic"><use href="#i-camera"/></svg>Photo preuve</span>
+          <label class="zone-photo">
+            <input type="file" id="photoInput" accept="image/*" capture="environment">
+            <svg class="ic grand"><use href="#i-camera"/></svg>
+            <span id="photoLibelle">Prendre une photo (compteur, véhicule)</span>
+          </label>
+          <img id="photoPreview" class="apercu-photo" alt="Aperçu de la photo">
         </div>
 
-        <div class="form-group">
-          <label for="photoInput">Photo preuve</label>
-          <input type="file" id="photoInput" accept="image/*" capture="environment">
-          <img id="photoPreview" class="photo-preview" alt="Aperçu de la photo">
-        </div>
-
-        <button type="submit" class="btn-primary" id="btnSubmit">Enregistrer la saisie</button>
+        <button type="submit" class="bouton-principal" id="btnSubmit">
+          <svg class="ic"><use href="#i-save"/></svg><span>Enregistrer la saisie</span>
+        </button>
       </form>
     </section>
 
-    <section id="historyScreen" class="card hidden">
-      <h2>Dernières saisies sur ce téléphone</h2>
-      <ul id="historyList" class="history-list"></ul>
+    <section id="historyScreen" class="carte hidden">
+      <div class="carte-titre"><svg class="ic"><use href="#i-list"/></svg><h2>Dernières saisies sur ce téléphone</h2></div>
+      <ul id="historyList" class="historique"></ul>
     </section>
-  </div>
+  </main>
 
   <script src="app.js"></script>
 </body>
