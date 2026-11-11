@@ -348,6 +348,21 @@ function formulaireVehicule(vehicule) {
 
 // ---------- Données ----------
 
+let derniereReponseDonnees = null;
+let filtreTuile = 'tous';
+
+const LIBELLES_TUILE = {
+  aujourdhui: "Saisies d'aujourd'hui",
+  enRoute: 'Véhicules en route',
+  tous: 'Toutes les saisies',
+  filtre: 'Résultats du filtre'
+};
+
+function dateDuJour() {
+  // Le format sv-SE donne directement AAAA-MM-JJ, à l'heure du téléphone (Bangui).
+  return new Date().toLocaleDateString('sv-SE');
+}
+
 async function ouvrirDonnees() {
   if (!navigator.onLine) return afficherHorsLigne();
   afficherChargement();
@@ -357,14 +372,14 @@ async function ouvrirDonnees() {
     return afficherErreurChargement(err, ouvrirDonnees);
   }
   if (vueActive !== 'donnees') return;
+  filtreTuile = 'tous';
   const options = (valeurs) => valeurs.map((v) => '<option>' + echapper(v) + '</option>').join('');
   vueAdmin.innerHTML =
     '<div class="indicateurs">' +
-    '<div class="indicateur"><small>Saisies aujourd\'hui</small><strong id="indAujourdhui">-</strong></div>' +
-    '<div class="indicateur"><small>Véhicules en route</small><strong id="indEnRoute">-</strong></div>' +
-    '<div class="indicateur"><small>Résultats du filtre</small><strong id="indTotal">-</strong></div>' +
+    '<button type="button" class="indicateur" data-tuile="aujourdhui"><small>Saisies aujourd\'hui</small><strong id="indAujourdhui">-</strong></button>' +
+    '<button type="button" class="indicateur" data-tuile="enRoute"><small>Véhicules en route</small><strong id="indEnRoute">-</strong></button>' +
+    '<button type="button" class="indicateur" data-tuile="tous"><small>Toutes les saisies</small><strong id="indTotal">-</strong></button>' +
     '</div>' +
-    '<div class="carte" id="carteEnRoute"></div>' +
     '<details class="carte filtres"><summary>' + icone('i-search') + 'Filtrer les saisies</summary>' +
     '<div class="grille-filtres">' +
     '<label>Du<input type="date" id="fDu"></label><label>Au<input type="date" id="fAu"></label>' +
@@ -372,8 +387,35 @@ async function ouvrirDonnees() {
     '<label>Conducteur<select id="fConducteur"><option value="">Tous</option>' + options(adminConducteurs.map((c) => c.nom).sort((a, b) => a.localeCompare(b, 'fr'))) + '</select></label>' +
     '<label>Type<select id="fType"><option value="">Tous</option><option>Début du trajet</option><option>Fin du trajet</option></select></label>' +
     '</div><button type="button" class="bouton-principal" id="btnFiltrer">Appliquer</button></details>' +
+    '<div class="bandeau-filtre" id="bandeauFiltre"></div>' +
     '<ul class="liste-saisies" id="listeSaisiesAdmin"></ul>';
-  $('btnFiltrer').onclick = chargerSaisies;
+
+  vueAdmin.querySelectorAll('[data-tuile]').forEach((tuile) => {
+    tuile.onclick = () => choisirTuile(tuile.dataset.tuile);
+  });
+  $('btnFiltrer').onclick = () => {
+    filtreTuile = 'filtre';
+    vueAdmin.querySelector('.filtres').open = false;
+    chargerSaisies();
+  };
+  chargerSaisies();
+}
+
+function viderFiltres() {
+  ['fDu', 'fAu', 'fVehicule', 'fConducteur', 'fType'].forEach((id) => { $(id).value = ''; });
+}
+
+function choisirTuile(tuile) {
+  filtreTuile = tuile;
+  if (tuile === 'enRoute' && derniereReponseDonnees) {
+    dessinerSaisies(derniereReponseDonnees.enRoute);
+    return;
+  }
+  viderFiltres();
+  if (tuile === 'aujourdhui') {
+    $('fDu').value = dateDuJour();
+    $('fAu').value = dateDuJour();
+  }
   chargerSaisies();
 }
 
@@ -393,33 +435,152 @@ async function chargerSaisies() {
   }
   if (vueActive !== 'donnees') return;
 
+  derniereReponseDonnees = reponse;
   $('indAujourdhui').textContent = reponse.aujourdhui;
   $('indEnRoute').textContent = reponse.enRoute.length;
-  $('indTotal').textContent = reponse.total;
-  $('carteEnRoute').innerHTML =
-    '<div class="carte-titre">' + icone('i-start') + '<h2>Véhicules en route</h2></div>' +
-    (reponse.enRoute.length
-      ? '<ul class="liste-simple">' + reponse.enRoute.map((s) =>
-        '<li><strong>' + echapper(s.vehicule) + '</strong><small>' + echapper(s.conducteur) + ' · vers ' + echapper(s.destination) +
-        ' · parti le ' + echapper(s.dateSaisie.slice(0, 16)) + ' à ' + echapper(s.kilometrage) + ' km</small></li>').join('') + '</ul>'
-      : '<p class="aide">Aucun véhicule en route.</p>');
+  if (filtreTuile === 'tous') $('indTotal').textContent = reponse.total;
+  dessinerSaisies(filtreTuile === 'enRoute' ? reponse.enRoute : reponse.saisies, reponse.total);
+}
 
-  liste.innerHTML = reponse.saisies.map((s) =>
-    '<li class="carte saisie-admin">' +
-    '<div class="saisie-entete"><span class="badge ' + (s.typeTrajet === 'Fin du trajet' ? 'fin' : 'debut') + '">' + echapper(s.typeTrajet || 'Sans type') + '</span>' +
-    '<small>' + echapper(s.dateSaisie.slice(0, 16)) + '</small></div>' +
+function dessinerSaisies(saisies, total) {
+  vueAdmin.querySelectorAll('[data-tuile]').forEach((t) => t.classList.toggle('actif', t.dataset.tuile === filtreTuile));
+  const nombre = total == null ? saisies.length : total;
+  $('bandeauFiltre').innerHTML =
+    '<span>' + icone('i-list') + echapper(LIBELLES_TUILE[filtreTuile]) + ' : <strong>' + nombre + '</strong></span>' +
+    (filtreTuile === 'tous' ? '' : '<button type="button" id="btnEffacerFiltre">Tout afficher</button>');
+  if ($('btnEffacerFiltre')) $('btnEffacerFiltre').onclick = () => choisirTuile('tous');
+
+  const liste = $('listeSaisiesAdmin');
+  liste.innerHTML = saisies.map((s, i) =>
+    '<li><button type="button" class="carte saisie-admin" data-index="' + i + '">' +
+    '<span class="miniature"' + (s.photoId ? ' data-photo="' + echapper(s.photoId) + '"' : '') + '>' +
+    (s.photoId ? icone('i-camera') : '<small>Sans photo</small>') + '</span>' +
+    '<span class="saisie-corps">' +
+    '<span class="saisie-entete"><span class="badge ' + (s.typeTrajet === 'Fin du trajet' ? 'fin' : 'debut') + '">' + echapper(s.typeTrajet || 'Sans type') + '</span>' +
+    '<small>' + echapper(s.dateSaisie.slice(0, 16)) + '</small></span>' +
     '<strong>' + echapper(s.vehicule) + '</strong>' +
-    '<dl>' +
-    '<dt>Conducteur</dt><dd>' + echapper(s.conducteur) + '</dd>' +
-    '<dt>Kilométrage</dt><dd>' + echapper(s.kilometrage) + ' km</dd>' +
-    '<dt>Destination</dt><dd>' + echapper(s.destination) + '</dd>' +
-    '<dt>Carburant</dt><dd>' + echapper(s.carburant) + '</dd>' +
-    (s.commentaire ? '<dt>Commentaire</dt><dd>' + echapper(s.commentaire) + '</dd>' : '') +
-    '</dl>' +
-    (s.photo && s.photo.startsWith('https://') ? '<a class="lien-photo" href="' + echapper(s.photo) + '" target="_blank" rel="noopener">' + icone('i-camera') + 'Voir la photo</a>' : '') +
-    '</li>'
-  ).join('') || '<li class="carte etat-vide"><p class="aide">Aucune saisie pour ce filtre.</p></li>';
-  if (reponse.total > reponse.saisies.length) {
-    liste.insertAdjacentHTML('beforeend', '<li class="aide">Les ' + reponse.saisies.length + ' plus récentes sur ' + reponse.total + ' sont affichées. Resserrez le filtre pour voir les autres.</li>');
+    '<small>' + echapper(s.conducteur) + '</small>' +
+    '<small>' + echapper(s.kilometrage) + ' km · ' + echapper(s.destination) + ' · carburant ' + echapper(s.carburant) + '</small>' +
+    (s.commentaire ? '<small class="commentaire-court">' + icone('i-alert') + echapper(s.commentaire) + '</small>' : '') +
+    '</span></button></li>'
+  ).join('') || '<li class="carte etat-vide"><p class="aide">Aucune saisie à afficher.</p></li>';
+
+  if (total != null && total > saisies.length) {
+    liste.insertAdjacentHTML('beforeend', '<li class="aide">Les ' + saisies.length + ' plus récentes sur ' + total + ' sont affichées. Resserrez le filtre pour voir les autres.</li>');
   }
+  liste.querySelectorAll('.saisie-admin').forEach((carte) => {
+    carte.onclick = () => ouvrirFicheSaisie(saisies[Number(carte.dataset.index)]);
+  });
+  observerMiniatures();
+}
+
+// ---------- Photos ----------
+
+// Les photos ne passent que par le script : un admin n'a pas besoin d'accès au dossier Drive.
+// Elles restent en mémoire le temps de la visite, jamais sur le téléphone.
+const photosEnMemoire = new Map();
+const fileDePhotos = [];
+let photosEnCours = 0;
+const PHOTOS_EN_PARALLELE = 2;
+
+function chargerPhoto(photoId, taille) {
+  const cle = photoId + ':' + taille;
+  if (!photosEnMemoire.has(cle)) {
+    photosEnMemoire.set(cle, new Promise((resolve, reject) => {
+      fileDePhotos.push({ photoId, taille, resolve, reject });
+      lancerPhotos();
+    }));
+    // Un échec ne doit pas rester en mémoire : un nouvel essai doit être possible.
+    photosEnMemoire.get(cle).catch(() => photosEnMemoire.delete(cle));
+  }
+  return photosEnMemoire.get(cle);
+}
+
+function lancerPhotos() {
+  while (photosEnCours < PHOTOS_EN_PARALLELE && fileDePhotos.length) {
+    const demande = fileDePhotos.shift();
+    photosEnCours++;
+    appelAdmin('admin.photo', { photoId: demande.photoId, taille: demande.taille })
+      .then((r) => demande.resolve(r.image), demande.reject)
+      .finally(() => { photosEnCours--; lancerPhotos(); });
+  }
+}
+
+let observateurMiniatures = null;
+
+function observerMiniatures() {
+  if (observateurMiniatures) observateurMiniatures.disconnect();
+  observateurMiniatures = new IntersectionObserver((entrees) => {
+    for (const entree of entrees) {
+      if (!entree.isIntersecting) continue;
+      observateurMiniatures.unobserve(entree.target);
+      afficherMiniature(entree.target);
+    }
+  }, { rootMargin: '200px' });
+  vueAdmin.querySelectorAll('.miniature[data-photo]').forEach((m) => observateurMiniatures.observe(m));
+}
+
+async function afficherMiniature(zone) {
+  zone.classList.add('en-chargement');
+  try {
+    const image = await chargerPhoto(zone.dataset.photo, 'miniature');
+    zone.innerHTML = '<img alt="Photo de la saisie" src="' + image + '">';
+  } catch (_) {
+    zone.innerHTML = '<small>Photo indisponible</small>';
+  } finally {
+    zone.classList.remove('en-chargement');
+  }
+}
+
+// ---------- Fiche détaillée d'une saisie ----------
+
+function delaiEnvoi(saisie) {
+  const debut = new Date(saisie.dateSaisie.replace(' ', 'T'));
+  const fin = new Date(saisie.dateReception.replace(' ', 'T'));
+  const minutes = Math.round((fin - debut) / 60000);
+  if (isNaN(minutes) || minutes < 1) return 'immédiat';
+  if (minutes < 60) return minutes + ' min (saisie hors ligne)';
+  const heures = Math.floor(minutes / 60);
+  return heures + ' h ' + (minutes % 60) + ' min (saisie hors ligne)';
+}
+
+function ouvrirFicheSaisie(s) {
+  const ligne = (libelle, valeur) => valeur ? '<dt>' + libelle + '</dt><dd>' + echapper(valeur) + '</dd>' : '';
+  ouvrirModaleAdmin(
+    '<div class="fiche-entete"><span class="badge ' + (s.typeTrajet === 'Fin du trajet' ? 'fin' : 'debut') + '">' + echapper(s.typeTrajet || 'Sans type') + '</span>' +
+    '<button type="button" class="bouton-fermer" data-fermer aria-label="Fermer">' + icone('i-x') + '</button></div>' +
+    '<h2>' + echapper(s.vehicule) + '</h2>' +
+    (s.photoId
+      ? '<div class="photo-fiche en-chargement" id="photoFiche"><div class="chargement"></div><p class="aide">Chargement de la photo...</p></div>'
+      : '<div class="photo-fiche vide">' + icone('i-camera') + '<p class="aide">Aucune photo pour cette saisie.</p></div>') +
+    '<dl class="fiche">' +
+    ligne('Conducteur', s.conducteur) +
+    ligne('Kilométrage', s.kilometrage + ' km') +
+    ligne('Destination', s.destination) +
+    ligne('Carburant', s.carburant) +
+    ligne('Commentaire', s.commentaire) +
+    ligne('Saisie le', s.dateSaisie) +
+    ligne('Reçue le', s.dateReception) +
+    ligne("Délai d'envoi", delaiEnvoi(s)) +
+    ligne('Identifiant', s.id) +
+    '</dl>' +
+    (s.photo && s.photo.startsWith('https://')
+      ? '<a class="lien-photo" href="' + echapper(s.photo) + '" target="_blank" rel="noopener">' + icone('i-camera') + 'Ouvrir la photo dans Google Drive</a>'
+      : '') +
+    '<button type="button" class="bouton-principal" data-fermer>Fermer</button>'
+  );
+  if (!s.photoId) return;
+  chargerPhoto(s.photoId, 'complete')
+    .then((image) => {
+      const zone = $('photoFiche');
+      if (!zone) return;
+      zone.classList.remove('en-chargement');
+      zone.innerHTML = '<img alt="Photo de la saisie" src="' + image + '">';
+      // Un appui agrandit la photo à toute la hauteur de l'écran, un second la remet en place.
+      zone.onclick = () => zone.classList.toggle('agrandie');
+    })
+    .catch((err) => {
+      const zone = $('photoFiche');
+      if (zone) zone.innerHTML = icone('i-alert') + '<p class="aide">Photo indisponible : ' + echapper(err.message) + '</p>';
+    });
 }

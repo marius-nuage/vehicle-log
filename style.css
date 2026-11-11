@@ -606,3 +606,56 @@ input:focus, select:focus, textarea:focus {
 .saisie-admin dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 0.87rem; }
 .saisie-admin dt { color: var(--texte-doux); }
 .lien-photo { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: var(--bleu); font-weight: 600; text-decoration: none; }
+
+/* Données : tuiles cliquables, cartes avec miniature, fiche détaillée */
+
+button.indicateur { text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.indicateur.actif { border-color: var(--bleu); background: var(--bleu-clair); box-shadow: 0 0 0 2px rgba(58, 120, 214, 0.2); }
+.bandeau-filtre { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 4px 10px; font-size: 0.85rem; color: var(--texte-doux); }
+.bandeau-filtre span { display: inline-flex; align-items: center; gap: 6px; }
+.bandeau-filtre .ic { width: 16px; height: 16px; }
+.bandeau-filtre button { border: none; background: none; color: var(--bleu); font: inherit; font-weight: 600; }
+
+button.saisie-admin { display: flex; gap: 12px; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.miniature {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  background: var(--bleu-clair);
+  color: var(--bleu);
+  overflow: hidden;
+  text-align: center;
+}
+.miniature small { font-size: 0.7rem; color: var(--texte-doux); padding: 4px; }
+.miniature img { width: 100%; height: 100%; object-fit: cover; }
+.miniature.en-chargement .ic { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+.saisie-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.saisie-corps strong { margin: 4px 0 0; font-size: 0.92rem; }
+.saisie-corps > small { color: var(--texte-doux); font-size: 0.82rem; }
+.commentaire-court { display: flex; align-items: flex-start; gap: 4px; color: var(--orange) !important; }
+.commentaire-court .ic { width: 14px; height: 14px; margin-top: 2px; }
+
+.fiche-entete { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.bouton-fermer { border: none; background: none; color: var(--texte-doux); padding: 4px; }
+.photo-fiche {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  border-radius: 12px;
+  background: var(--bleu-clair);
+  overflow: hidden;
+  margin-bottom: 14px;
+  text-align: center;
+  color: var(--bleu);
+}
+.photo-fiche img { display: block; width: 100%; max-height: 50vh; object-fit: contain; background: #0d1626; cursor: zoom-in; }
+.photo-fiche.agrandie img { max-height: 85vh; cursor: zoom-out; }
+.photo-fiche.vide .ic { width: 32px; height: 32px; }
+dl.fiche { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 0.9rem; margin-bottom: 12px; }
+dl.fiche dt { color: var(--texte-doux); }
+dl.fiche dd { font-weight: 600; word-break: break-word; }
+.modale-formulaire { max-height: 92vh; overflow-y: auto; }
