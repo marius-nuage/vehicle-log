@@ -1,12 +1,14 @@
+/* Palette reprise de la bannière : bleu profond du titre, bleu vif du fond, bleu ciel des reflets. */
 :root {
-  --bleu-fonce: #0b4f7c;
-  --bleu: #0a73b0;
-  --bleu-clair: #e7f2fa;
-  --fond: #eef2f6;
+  --bleu-fonce: #2b5cad;
+  --bleu: #3a78d6;
+  --bleu-ciel: #5ca0ee;
+  --bleu-clair: #e8f1fd;
+  --fond: #eef4fc;
   --carte: #ffffff;
-  --texte: #1c2733;
-  --texte-doux: #5f6b78;
-  --bordure: #d5dde5;
+  --texte: #1b2a41;
+  --texte-doux: #5d6b82;
+  --bordure: #d3e0f0;
   --vert: #1f8a4c;
   --vert-clair: #e5f4eb;
   --orange: #c77700;
@@ -43,7 +45,7 @@ body {
 /* En-tête */
 
 .entete {
-  background: var(--bleu-fonce);
+  background: linear-gradient(120deg, var(--bleu-fonce), var(--bleu));
   color: #fff;
   padding: 14px 16px 12px;
   padding-top: max(14px, env(safe-area-inset-top));
@@ -78,7 +80,7 @@ h1 { font-size: 1.2rem; font-weight: 600; }
   border-radius: 999px;
 }
 .reseau .ic { width: 16px; height: 16px; }
-.reseau.en-ligne { background: rgba(255, 255, 255, 0.15); color: #b9f1cf; }
+.reseau.en-ligne { background: rgba(255, 255, 255, 0.18); color: #d9f7e5; }
 .reseau.hors-ligne { background: #fbe1dd; color: var(--rouge); }
 
 .entete-synchro {
@@ -121,7 +123,80 @@ h1 { font-size: 1.2rem; font-weight: 600; }
   border-radius: var(--rayon);
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(43, 92, 173, 0.06);
 }
+
+/* Champ obligatoire non rempli */
+
+.carte.en-erreur { border-color: var(--rouge); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12); }
+.carte.en-erreur .etiquette .ic { color: var(--rouge); }
+.carte.en-erreur select,
+.carte.en-erreur input[type="text"],
+.carte.en-erreur input[type="number"],
+.carte.en-erreur textarea { border-color: var(--rouge); }
+.erreur-champ {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--rouge);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.erreur-champ .ic { width: 16px; height: 16px; }
+
+/* Modale de champs manquants */
+
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(27, 42, 65, 0.55);
+}
+.modale-boite {
+  width: 100%;
+  max-width: 400px;
+  background: var(--carte);
+  border-radius: 16px;
+  padding: 22px 20px 18px;
+  text-align: center;
+}
+.modale-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--rouge-clair);
+  color: var(--rouge);
+  margin-bottom: 10px;
+}
+.modale-boite h2 { font-size: 1.1rem; color: var(--texte); }
+.modale-liste {
+  list-style: none;
+  text-align: left;
+  margin: 14px 0 18px;
+}
+.modale-liste button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid #f3c7c1;
+  border-radius: 10px;
+  background: var(--rouge-clair);
+  color: var(--rouge);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+.modale-liste .ic { width: 18px; height: 18px; }
 
 fieldset.carte { min-width: 0; }
 /* Sans float, la légende d'un fieldset se pose sur la bordure au lieu d'être dans la carte. */
@@ -183,7 +258,7 @@ select {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--bleu);
-  box-shadow: 0 0 0 3px rgba(10, 115, 176, 0.18);
+  box-shadow: 0 0 0 3px rgba(58, 120, 214, 0.2);
   background: #fff;
 }
 
@@ -372,3 +447,6 @@ input:focus, select:focus, textarea:focus {
 .historique .refusee .ic { color: var(--rouge); }
 .historique small { display: block; color: var(--texte-doux); }
 .historique .refusee small { color: var(--rouge); }
+
+/* Le message d'erreur remplace l'aide quand le commentaire manque. */
+.carte.en-erreur #commentaireAide { display: none; }

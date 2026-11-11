@@ -1,6 +1,6 @@
 // Changer ce numéro à chaque modification d'un fichier de l'application :
 // c'est ce qui force les téléphones à télécharger la nouvelle version.
-const VERSION_CACHE = 'vehicle-log-v3';
+const VERSION_CACHE = 'vehicle-log-v4';
 
 const FICHIERS_APPLICATION = [
   './',
@@ -14,7 +14,9 @@ const FICHIERS_APPLICATION = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION_CACHE).then((cache) => cache.addAll(FICHIERS_APPLICATION)));
+  // GitHub Pages autorise 10 minutes de cache HTTP : sans « reload », une nouvelle version pourrait enregistrer d'anciens fichiers.
+  const requetes = FICHIERS_APPLICATION.map((fichier) => new Request(fichier, { cache: 'reload' }));
+  event.waitUntil(caches.open(VERSION_CACHE).then((cache) => cache.addAll(requetes)));
   self.skipWaiting();
 });
 

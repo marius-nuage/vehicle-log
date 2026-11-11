@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
-  <meta name="theme-color" content="#0b4f7c">
+  <meta name="theme-color" content="#2b5cad">
 </head>
 <body>
 
@@ -81,7 +81,7 @@
       </div>
 
       <form id="logForm" novalidate>
-        <fieldset class="carte">
+        <fieldset class="carte" id="carteTrajet">
           <legend class="etiquette requis"><svg class="ic"><use href="#i-start"/></svg>Type d'enregistrement du trajet</legend>
           <div class="choix-trajet">
             <label class="option-trajet debut">
@@ -95,31 +95,31 @@
           </div>
         </fieldset>
 
-        <div class="carte">
+        <div class="carte" id="carteConducteur">
           <label for="conducteurSelect" class="etiquette requis"><svg class="ic"><use href="#i-user"/></svg>Nom du conducteur</label>
           <select id="conducteurSelect" required>
             <option value="">Sélectionner</option>
           </select>
         </div>
 
-        <div class="carte">
+        <div class="carte" id="carteVehicule">
           <label for="vehiculeSelect" class="etiquette requis"><svg class="ic"><use href="#i-car"/></svg>Véhicule utilisé</label>
           <select id="vehiculeSelect" required>
             <option value="">Sélectionner</option>
           </select>
         </div>
 
-        <div class="carte">
+        <div class="carte" id="carteKilometrage">
           <label for="kilometrageInput" class="etiquette requis"><svg class="ic"><use href="#i-gauge"/></svg>Kilométrage actuel (km)</label>
           <input type="number" id="kilometrageInput" inputmode="numeric" min="1" step="1" required placeholder="Ex. 154200">
         </div>
 
-        <div class="carte">
+        <div class="carte" id="carteDestination">
           <label for="destinationInput" class="etiquette requis"><svg class="ic"><use href="#i-pin"/></svg>Destination du déplacement</label>
           <input type="text" id="destinationInput" required placeholder="Ex. Bureau UNOPS, PK12">
         </div>
 
-        <fieldset class="carte">
+        <fieldset class="carte" id="carteCarburant">
           <legend class="etiquette requis"><svg class="ic"><use href="#i-fuel"/></svg>Niveau de carburant actuel</legend>
           <div class="jauges">
             <label class="jauge"><input type="radio" name="carburant" value="Plein/ Full" required><span class="barre" style="--niveau:100%"></span><span>Plein / Full</span></label>
@@ -131,7 +131,7 @@
           </div>
         </fieldset>
 
-        <div class="carte">
+        <div class="carte" id="carteCommentaire">
           <label for="commentaireInput" id="commentaireLabel" class="etiquette"><svg class="ic"><use href="#i-alert"/></svg>Commentaire &amp; anomalie constatée</label>
           <textarea id="commentaireInput" rows="3" placeholder="Bruit anormal, voyant allumé, pneu..."></textarea>
           <small id="commentaireAide" class="aide hidden">Véhicule « Autre » : indiquez ici l'immatriculation et le modèle.</small>
@@ -158,6 +158,16 @@
       <ul id="historyList" class="historique"></ul>
     </section>
   </main>
+
+  <div id="modaleErreurs" class="modale hidden" role="dialog" aria-modal="true" aria-labelledby="modaleTitre">
+    <div class="modale-boite">
+      <div class="modale-icone"><svg class="ic grand"><use href="#i-alert"/></svg></div>
+      <h2 id="modaleTitre">Champs obligatoires à remplir</h2>
+      <p class="aide">La saisie n'est pas enregistrée. Complétez les champs suivants :</p>
+      <ul id="modaleListe" class="modale-liste"></ul>
+      <button type="button" id="modaleFermer" class="bouton-principal">Compléter la saisie</button>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

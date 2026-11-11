@@ -96,6 +96,8 @@ const libellePhoto = $('photoLibelle');
 const libelleCommentaire = $('commentaireLabel');
 const aideCommentaire = $('commentaireAide');
 const boutonEnregistrer = $('btnSubmit');
+const modaleErreurs = $('modaleErreurs');
+const listeModale = $('modaleListe');
 
 // ---------- Démarrage ----------
 
@@ -344,13 +346,21 @@ formulaireSaisie.addEventListener('submit', async (e) => {
   const typeTrajet = document.querySelector('input[name="typeTrajet"]:checked');
   const commentaire = champCommentaire.value.trim();
 
-  if (!typeTrajet) return afficherMessage('Indiquez s\'il s\'agit du début ou de la fin du trajet.');
-  if (!conducteur) return afficherMessage('Sélectionnez le nom du conducteur.');
-  if (!vehicule) return afficherMessage('Sélectionnez un véhicule.');
-  if (vehicule === VEHICULE_AUTRE && !commentaire) return afficherMessage('Véhicule « Autre » : précisez le véhicule dans le commentaire.');
-  if (!Number.isInteger(kilometrage) || kilometrage <= 0) return afficherMessage('Kilométrage invalide.');
-  if (!destination) return afficherMessage('Indiquez la destination.');
-  if (!carburant) return afficherMessage('Indiquez le niveau de carburant.');
+  const champsManquants = [];
+  if (!typeTrajet) champsManquants.push(['carteTrajet', "Type d'enregistrement du trajet", 'Choisissez « Début du trajet » ou « Fin du trajet ».']);
+  if (!conducteur) champsManquants.push(['carteConducteur', 'Nom du conducteur', 'Sélectionnez le nom du conducteur.']);
+  if (!vehicule) champsManquants.push(['carteVehicule', 'Véhicule utilisé', 'Sélectionnez le véhicule.']);
+  if (!champKilometrage.value) champsManquants.push(['carteKilometrage', 'Kilométrage actuel', 'Indiquez le kilométrage affiché au compteur.']);
+  else if (!Number.isInteger(kilometrage) || kilometrage <= 0) champsManquants.push(['carteKilometrage', 'Kilométrage actuel', 'Le kilométrage doit être un nombre entier, sans virgule ni espace.']);
+  if (!destination) champsManquants.push(['carteDestination', 'Destination du déplacement', 'Indiquez la destination.']);
+  if (!carburant) champsManquants.push(['carteCarburant', 'Niveau de carburant', 'Choisissez le niveau de carburant.']);
+  if (vehicule === VEHICULE_AUTRE && !commentaire) champsManquants.push(['carteCommentaire', 'Commentaire', 'Véhicule « Autre » : indiquez ici l\'immatriculation et le modèle.']);
+
+  effacerErreurs();
+  if (champsManquants.length) {
+    signalerChampsManquants(champsManquants);
+    return;
+  }
 
   const saisies = await lireSaisies();
   const dernierReleve = Math.max(0, ...saisies.filter((s) => s.vehicule === vehicule).map((s) => s.kilometrage));
@@ -391,6 +401,62 @@ formulaireSaisie.addEventListener('submit', async (e) => {
   await rafraichirAffichage();
   if (navigator.onLine) synchroniser(true);
 });
+
+// ---------- Champs obligatoires ----------
+
+function effacerErreur(carte) {
+  carte.classList.remove('en-erreur');
+  const message = carte.querySelector('.erreur-champ');
+  if (message) message.remove();
+}
+
+function effacerErreurs() {
+  formulaireSaisie.querySelectorAll('.en-erreur').forEach(effacerErreur);
+}
+
+function allerAuChamp(idCarte) {
+  const carte = $(idCarte);
+  carte.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const champ = carte.querySelector('select, input:not([type="radio"]), textarea');
+  if (champ) setTimeout(() => champ.focus({ preventScroll: true }), 400);
+}
+
+function fermerModale() {
+  modaleErreurs.classList.add('hidden');
+}
+
+function signalerChampsManquants(champsManquants) {
+  listeModale.innerHTML = '';
+  for (const [idCarte, nom, consigne] of champsManquants) {
+    const carte = $(idCarte);
+    carte.classList.add('en-erreur');
+    const message = document.createElement('small');
+    message.className = 'erreur-champ';
+    message.innerHTML = '<svg class="ic"><use href="#i-alert"/></svg><span></span>';
+    message.querySelector('span').textContent = consigne;
+    carte.appendChild(message);
+
+    const element = document.createElement('li');
+    element.innerHTML = '<button type="button"><svg class="ic"><use href="#i-alert"/></svg><span></span></button>';
+    element.querySelector('span').textContent = nom;
+    element.querySelector('button').addEventListener('click', () => { fermerModale(); allerAuChamp(idCarte); });
+    listeModale.appendChild(element);
+  }
+  modaleErreurs.classList.remove('hidden');
+  $('modaleFermer').onclick = () => { fermerModale(); allerAuChamp(champsManquants[0][0]); };
+}
+
+// Le message disparaît dès que le conducteur corrige le champ concerné.
+formulaireSaisie.addEventListener('input', (e) => {
+  const carte = e.target.closest('.carte.en-erreur');
+  if (carte) effacerErreur(carte);
+});
+formulaireSaisie.addEventListener('change', (e) => {
+  const carte = e.target.closest('.carte.en-erreur');
+  if (carte) effacerErreur(carte);
+  if (e.target === listeVehicules && listeVehicules.value !== VEHICULE_AUTRE) effacerErreur($('carteCommentaire'));
+});
+modaleErreurs.addEventListener('click', (e) => { if (e.target === modaleErreurs) fermerModale(); });
 
 // ---------- Synchronisation ----------
 
