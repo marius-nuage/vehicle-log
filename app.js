@@ -85,6 +85,7 @@ const champCode = $('driverCodeInput');
 const nomConducteur = $('displayDriverName');
 const boutonChangerConducteur = $('btnLogout');
 const listeVehicules = $('vehiculeSelect');
+const listeConducteurs = $('conducteurSelect');
 const formulaireSaisie = $('logForm');
 const champKilometrage = $('kilometrageInput');
 const champDestination = $('destinationInput');
@@ -184,17 +185,23 @@ async function rafraichirAffichage() {
   ecranHistorique.classList.toggle('hidden', recentes.length === 0);
 }
 
+function remplirListe(liste, valeurs, valeurParDefaut) {
+  const choixActuel = liste.value;
+  liste.innerHTML = '<option value="">Sélectionner</option>';
+  for (const valeur of valeurs) {
+    const option = document.createElement('option');
+    option.value = valeur;
+    option.textContent = valeur;
+    liste.appendChild(option);
+  }
+  liste.value = valeurs.includes(choixActuel) ? choixActuel : (valeurParDefaut || '');
+}
+
 function afficherEcranSaisie() {
   nomConducteur.textContent = session.nom;
-  const choixActuel = listeVehicules.value;
-  listeVehicules.innerHTML = '<option value="">Sélectionner</option>';
-  for (const vehicule of session.vehicules) {
-    const option = document.createElement('option');
-    option.value = vehicule;
-    option.textContent = vehicule;
-    listeVehicules.appendChild(option);
-  }
-  listeVehicules.value = session.vehicules.includes(choixActuel) ? choixActuel : '';
+  // Une session enregistrée avant l'ajout de la liste n'a que le nom du titulaire du code.
+  remplirListe(listeConducteurs, session.conducteurs || [session.nom], session.nom);
+  remplirListe(listeVehicules, session.vehicules, '');
   afficherAideCommentaire();
   ecranCode.classList.add('hidden');
   ecranSaisie.classList.remove('hidden');
@@ -235,7 +242,7 @@ formulaireCode.addEventListener('submit', async (e) => {
         afficherMessage(reponse.erreur || 'Code non reconnu.');
         return;
       }
-      session = { code: code, nom: reponse.conducteur, vehicules: reponse.vehicules };
+      session = { code: code, nom: reponse.conducteur, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
       await enregistrerConducteur(session);
       ouvrirSession();
       return;
@@ -330,6 +337,7 @@ async function compresserPhoto(fichier) {
 formulaireSaisie.addEventListener('submit', async (e) => {
   e.preventDefault();
   const vehicule = listeVehicules.value;
+  const conducteur = listeConducteurs.value;
   const kilometrage = Number(champKilometrage.value);
   const destination = champDestination.value.trim();
   const carburant = document.querySelector('input[name="carburant"]:checked');
@@ -337,6 +345,7 @@ formulaireSaisie.addEventListener('submit', async (e) => {
   const commentaire = champCommentaire.value.trim();
 
   if (!typeTrajet) return afficherMessage('Indiquez s\'il s\'agit du début ou de la fin du trajet.');
+  if (!conducteur) return afficherMessage('Sélectionnez le nom du conducteur.');
   if (!vehicule) return afficherMessage('Sélectionnez un véhicule.');
   if (vehicule === VEHICULE_AUTRE && !commentaire) return afficherMessage('Véhicule « Autre » : précisez le véhicule dans le commentaire.');
   if (!Number.isInteger(kilometrage) || kilometrage <= 0) return afficherMessage('Kilométrage invalide.');
@@ -356,6 +365,7 @@ formulaireSaisie.addEventListener('submit', async (e) => {
       code: session.code,
       dateSaisie: new Date().toISOString(),
       typeTrajet: typeTrajet.value,
+      conducteur: conducteur,
       vehicule: vehicule,
       kilometrage: kilometrage,
       destination: destination,
@@ -371,6 +381,7 @@ formulaireSaisie.addEventListener('submit', async (e) => {
 
   formulaireSaisie.reset();
   listeVehicules.value = vehicule;
+  listeConducteurs.value = conducteur;
   photoCompressee = '';
   apercuPhoto.style.display = 'none';
   libellePhoto.textContent = 'Prendre une photo (compteur, véhicule)';
@@ -453,7 +464,7 @@ async function mettreAJourReferentiel() {
   try {
     const reponse = await demanderReferentiel(session.code);
     if (!reponse.ok) return;
-    session = { code: session.code, nom: reponse.conducteur, vehicules: reponse.vehicules };
+    session = { code: session.code, nom: reponse.conducteur, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
     ecrireSession(session);
     await enregistrerConducteur(session);
     afficherEcranSaisie();

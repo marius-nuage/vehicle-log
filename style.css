@@ -194,6 +194,14 @@ input:focus, select:focus, textarea:focus {
   margin: 8px 0 14px;
 }
 
+.banniere {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--rayon);
+  margin-bottom: 12px;
+}
+
 /* Conducteur connecté */
 
 .conducteur {

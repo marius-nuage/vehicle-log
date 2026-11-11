@@ -1,6 +1,6 @@
 // Changer ce numéro à chaque modification d'un fichier de l'application :
 // c'est ce qui force les téléphones à télécharger la nouvelle version.
-const VERSION_CACHE = 'vehicle-log-v2';
+const VERSION_CACHE = 'vehicle-log-v3';
 
 const FICHIERS_APPLICATION = [
   './',
@@ -9,7 +9,8 @@ const FICHIERS_APPLICATION = [
   './app.js',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './banniere.webp'
 ];
 
 self.addEventListener('install', (event) => {
