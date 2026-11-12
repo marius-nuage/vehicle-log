@@ -389,7 +389,7 @@ async function ouvrirDonnees() {
   vueAdmin.innerHTML =
     '<div class="indicateurs">' +
     '<button type="button" class="indicateur" data-tuile="aujourdhui"><small>Saisies aujourd\'hui</small><strong id="indAujourdhui">-</strong></button>' +
-    '<button type="button" class="indicateur" data-tuile="enRoute"><small>Véhicules en route</small><strong id="indEnRoute">-</strong></button>' +
+    '<button type="button" class="indicateur" data-tuile="enRoute"><small>Véhicules en route</small><strong id="indEnRoute">-</strong><em id="indAlerte" class="hidden"></em></button>' +
     '<button type="button" class="indicateur" data-tuile="tous"><small>Toutes les saisies</small><strong id="indTotal">-</strong></button>' +
     '</div>' +
     '<div class="outils-donnees">' +
@@ -490,17 +490,23 @@ async function chargerSaisies() {
   if (vueActive !== 'donnees') return;
 
   derniereReponseDonnees = reponse;
+  derniereReponseDonnees.seuilAlerteHeures = reponse.seuilAlerteHeures || 12;
   pageDonnees = reponse.page;
   $('indAujourdhui').textContent = reponse.aujourdhui;
   $('indEnRoute').textContent = reponse.enRoute.length;
+  afficherAlerteTuile();
   if (filtreTuile === 'tous' && !$('fRecherche').value) $('indTotal').textContent = reponse.total;
   dessinerSaisies();
 }
 
 function dessinerSaisies() {
   const reponse = derniereReponseDonnees;
+  if ($('reglageSeuil')) $('reglageSeuil').remove();
   const enRoute = filtreTuile === 'enRoute';
-  const saisies = enRoute ? reponse.enRoute : reponse.saisies;
+  // Les départs les plus anciens d'abord : ce sont les fins de trajet probablement oubliées.
+  const saisies = enRoute
+    ? reponse.enRoute.slice().sort((a, b) => a.dateSaisie.localeCompare(b.dateSaisie))
+    : reponse.saisies;
   const total = enRoute ? saisies.length : reponse.total;
 
   vueAdmin.querySelectorAll('[data-tuile]').forEach((t) => t.classList.toggle('actif', t.dataset.tuile === filtreTuile));
@@ -511,6 +517,7 @@ function dessinerSaisies() {
     (total ? ' · <strong>' + debut + '-' + fin + '</strong> sur <strong>' + total + '</strong>' : '') + '</span>' +
     (filtreTuile === 'tous' && !$('fRecherche').value ? '' : '<button type="button" id="btnEffacerFiltre">Tout afficher</button>');
   if ($('btnEffacerFiltre')) $('btnEffacerFiltre').onclick = () => choisirTuile('tous');
+  if (enRoute) afficherReglageSeuil();
 
   // Les saisies d'une même journée sont regroupées sous un titre de date.
   const groupes = [];
@@ -547,6 +554,7 @@ function carteSaisie(s, index) {
     '<span class="puces"><span class="puce">' + icone('i-gauge') + echapper(Number(s.kilometrage).toLocaleString('fr-FR')) + ' km</span>' +
     '<span class="puce">' + icone('i-fuel') + echapper(s.carburant) + '</span>' +
     (s.commentaire ? '<span class="puce alerte">' + icone('i-alert') + 'Commentaire</span>' : '') + '</span>' +
+    (estEnRoute(s) ? puceDuree(s) : '') +
     '</span></button></li>';
 }
 
@@ -604,6 +612,74 @@ async function exporterCsv() {
     bouton.disabled = false;
     changerTexteBouton(bouton, 'Exporter le résultat en CSV (Excel)');
   }
+}
+
+// ---------- Alerte : véhicules en route depuis trop longtemps ----------
+
+function minutesDepuis(dateSaisie) {
+  // Sans heure serveur (script pas encore à jour), l'heure du téléphone sert de repli.
+  const maintenant = derniereReponseDonnees.maintenant;
+  const reference = maintenant ? new Date(maintenant.replace(' ', 'T')) : new Date();
+  return Math.max(0, Math.round((reference - new Date(dateSaisie.replace(' ', 'T'))) / 60000));
+}
+
+function libelleDuree(minutes) {
+  if (minutes < 60) return minutes + ' min';
+  const heures = Math.floor(minutes / 60);
+  if (heures < 48) return heures + ' h ' + String(minutes % 60).padStart(2, '0');
+  return Math.floor(heures / 24) + ' j ' + (heures % 24) + ' h';
+}
+
+function estEnRoute(s) {
+  return !!derniereReponseDonnees && derniereReponseDonnees.enRoute.some((e) => e.id === s.id);
+}
+
+function enAlerte(s) {
+  return estEnRoute(s) && minutesDepuis(s.dateSaisie) >= derniereReponseDonnees.seuilAlerteHeures * 60;
+}
+
+function puceDuree(s) {
+  const alerte = enAlerte(s);
+  return '<span class="duree-route' + (alerte ? ' alerte' : '') + '">' + icone(alerte ? 'i-alert' : 'i-clock') +
+    'En route depuis ' + libelleDuree(minutesDepuis(s.dateSaisie)) +
+    (alerte ? ' · fin de trajet oubliée ?' : '') + '</span>';
+}
+
+function afficherAlerteTuile() {
+  const nombre = derniereReponseDonnees.enRoute.filter(enAlerte).length;
+  const tuile = vueAdmin.querySelector('[data-tuile="enRoute"]');
+  tuile.classList.toggle('alerte', nombre > 0);
+  $('indAlerte').innerHTML = nombre
+    ? icone('i-alert') + nombre + ' depuis + de ' + derniereReponseDonnees.seuilAlerteHeures + ' h'
+    : '';
+  $('indAlerte').classList.toggle('hidden', nombre === 0);
+}
+
+function afficherReglageSeuil() {
+  const seuil = derniereReponseDonnees.seuilAlerteHeures;
+  const choix = [4, 6, 8, 12, 24, 48, 72];
+  if (!choix.includes(seuil)) choix.push(seuil);
+  $('bandeauFiltre').insertAdjacentHTML('afterend',
+    '<div class="reglage-seuil" id="reglageSeuil">' + icone('i-alert') +
+    '<label for="selectSeuil">Alerte orange après</label>' +
+    '<select id="selectSeuil">' + choix.sort((a, b) => a - b).map((h) =>
+      '<option value="' + h + '"' + (h === seuil ? ' selected' : '') + '>' + h + ' h</option>').join('') + '</select></div>');
+  $('selectSeuil').onchange = async () => {
+    const select = $('selectSeuil');
+    select.disabled = true;
+    try {
+      const reponse = await appelAdmin('admin.seuil', { heures: Number(select.value) });
+      derniereReponseDonnees.seuilAlerteHeures = reponse.seuilAlerteHeures;
+      afficherAlerteTuile();
+      dessinerSaisies();
+      afficherMessage("Seuil d'alerte réglé sur " + reponse.seuilAlerteHeures + ' h pour tous les admins.', 'success');
+    } catch (err) {
+      afficherMessage('Réglage impossible : ' + err.message);
+      select.value = String(derniereReponseDonnees.seuilAlerteHeures);
+    } finally {
+      if ($('selectSeuil')) $('selectSeuil').disabled = false;
+    }
+  };
 }
 
 // ---------- Photos ----------
@@ -691,6 +767,7 @@ function ouvrirFicheSaisie(s) {
     ligne('Destination', s.destination) +
     ligne('Carburant', s.carburant) +
     ligne('Commentaire', s.commentaire) +
+    (estEnRoute(s) ? ligne('En route depuis', libelleDuree(minutesDepuis(s.dateSaisie)) + (enAlerte(s) ? ' (fin de trajet probablement oubliée)' : '')) : '') +
     ligne('Saisie le', s.dateSaisie) +
     ligne('Reçue le', s.dateReception) +
     ligne("Délai d'envoi", delaiEnvoi(s)) +

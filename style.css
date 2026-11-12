@@ -721,3 +721,28 @@ button.saisie-admin { margin-bottom: 0; padding: 12px; }
   font-weight: 600;
 }
 .bouton-export:disabled { opacity: 0.6; }
+
+/* Alerte : véhicule en route depuis trop longtemps */
+
+.indicateur em { display: flex; align-items: center; gap: 3px; margin-top: 2px; font-style: normal; font-size: 0.68rem; font-weight: 700; line-height: 1.2; color: var(--orange); }
+.indicateur em .ic { width: 12px; height: 12px; flex-shrink: 0; }
+.indicateur.alerte { border-color: #f0b35a; background: var(--orange-clair); }
+.indicateur.alerte strong { color: var(--orange); }
+.indicateur.alerte.actif { box-shadow: 0 0 0 2px rgba(199, 119, 0, 0.25); }
+.duree-route {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--bleu-clair);
+  color: var(--bleu-fonce);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.duree-route .ic { width: 14px; height: 14px; flex-shrink: 0; }
+.duree-route.alerte { background: var(--orange-clair); color: var(--orange); }
+.reglage-seuil { display: flex; align-items: center; gap: 8px; margin: -4px 4px 10px; font-size: 0.85rem; color: var(--texte-doux); }
+.reglage-seuil .ic { width: 16px; height: 16px; color: var(--orange); }
+.reglage-seuil select { width: auto; padding: 6px 30px 6px 10px; font-size: 0.85rem; }
