@@ -7,6 +7,7 @@
 let vueActive = 'saisie';
 let adminConducteurs = [];
 let adminVehicules = [];
+let adminEmailsAlerte = [];
 
 const navAdmin = $('navAdmin');
 const vueAdmin = $('vueAdmin');
@@ -96,6 +97,7 @@ async function chargerReferentiels() {
   const reponse = await appelAdmin('admin.referentiels');
   adminConducteurs = reponse.conducteurs;
   adminVehicules = reponse.vehicules;
+  adminEmailsAlerte = reponse.emailsAlerte || [];
 }
 
 // ---------- Fenêtre de formulaire ----------
@@ -173,8 +175,16 @@ async function ouvrirConducteurs() {
     '<div class="barre-admin">' +
     '<div class="recherche">' + icone('i-search') + '<input type="search" id="rechercheConducteur" placeholder="Rechercher un nom"></div>' +
     '<button type="button" class="bouton-ajout" id="btnAjouterConducteur">' + icone('i-plus') + '<span>Ajouter</span></button>' +
-    '</div><p class="aide compteur-liste" id="compteurConducteurs"></p><ul class="liste-admin" id="listeConducteursAdmin"></ul>';
+    '</div><div class="actions-codes">' +
+    '<button type="button" class="bouton-secondaire" id="btnImprimerCodes">' + icone('i-printer') + '<span>Imprimer les codes</span></button>' +
+    '<button type="button" class="bouton-secondaire" id="btnRegenererCodes">' + icone('i-lock') + '<span>Codes à 8 chiffres</span></button>' +
+    '</div><button type="button" class="reglage-email" id="btnEmailsAlerte"></button>' +
+    '<p class="aide compteur-liste" id="compteurConducteurs"></p><ul class="liste-admin" id="listeConducteursAdmin"></ul>';
   $('rechercheConducteur').addEventListener('input', dessinerConducteurs);
+  $('btnImprimerCodes').onclick = afficherListeCodes;
+  $('btnRegenererCodes').onclick = confirmerRegeneration;
+  $('btnEmailsAlerte').onclick = formulaireEmailsAlerte;
+  dessinerEmailsAlerte();
   $('btnAjouterConducteur').onclick = () => formulaireConducteur(null);
   dessinerConducteurs();
 }
@@ -185,7 +195,10 @@ function dessinerConducteurs() {
     .filter((c) => c.nom.toLowerCase().includes(filtre))
     .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
   const actifs = adminConducteurs.filter((c) => c.actif).length;
-  $('compteurConducteurs').textContent = adminConducteurs.length + ' personnes, dont ' + actifs + ' actives';
+  const codesCourts = adminConducteurs.filter((c) => c.code.length < 8).length;
+  $('compteurConducteurs').textContent = adminConducteurs.length + ' personnes, dont ' + actifs + ' actives' +
+    (codesCourts ? ' · ' + codesCourts + ' code(s) encore à 6 chiffres' : '');
+  $('btnRegenererCodes').classList.toggle('hidden', codesCourts === 0);
   $('listeConducteursAdmin').innerHTML = liste.map((c) =>
     '<li><button type="button" class="ligne-admin" data-code="' + echapper(c.code) + '">' +
     '<span class="pastille' + (c.role === 'admin' ? ' admin' : '') + '">' + icone(c.role === 'admin' ? 'i-shield' : 'i-user') + '</span>' +
@@ -263,6 +276,52 @@ function formulaireConducteur(conducteur) {
   }
 }
 
+// ---------- Codes : passage à 8 chiffres et liste imprimable ----------
+
+function confirmerRegeneration() {
+  const nombre = adminConducteurs.filter((c) => c.role === 'conducteur' && c.code.length < 8).length;
+  confirmer(
+    'Passer ' + nombre + ' code(s) à 8 chiffres ?',
+    'Chaque conducteur dont le code a 6 chiffres reçoit un nouveau code à 8 chiffres. À sa prochaine connexion, ' +
+    "l'application lui demandera le nouveau code. Ses saisies déjà en attente sur le téléphone seront quand même acceptées. " +
+    'Imprimez ensuite la liste pour remettre les codes.',
+    'Générer les nouveaux codes',
+    async () => {
+      const reponse = await appelAdmin('admin.codes.regenerer');
+      adminConducteurs = reponse.conducteurs;
+      dessinerConducteurs();
+      afficherMessage(reponse.nombre + ' code(s) changé(s).', 'success');
+      afficherListeCodes();
+    }
+  );
+  $('btnConfirmer').classList.replace('bouton-danger', 'bouton-principal');
+}
+
+function afficherListeCodes() {
+  const liste = adminConducteurs
+    .filter((c) => c.actif)
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  ouvrirModaleAdmin(
+    '<div class="fiche-entete"><h2>Codes des conducteurs</h2>' +
+    '<button type="button" class="bouton-fermer" data-fermer aria-label="Fermer">' + icone('i-x') + '</button></div>' +
+    '<div id="feuilleCodes" class="feuille-codes">' +
+    '<p class="aide">Daily Vehicle Log, UNOPS Bangui · liste du ' + new Date().toLocaleDateString('fr-FR') +
+    ' · document confidentiel, à remettre en main propre.</p>' +
+    '<table><thead><tr><th>Nom</th><th>Rôle</th><th>Code</th></tr></thead><tbody>' +
+    liste.map((c) => '<tr><td>' + echapper(c.nom) + '</td><td>' + (c.role === 'admin' ? 'Admin' : 'Conducteur') +
+      '</td><td class="code">' + echapper(c.code) + '</td></tr>').join('') +
+    '</tbody></table></div>' +
+    '<div class="boutons-modale"><button type="button" class="bouton-secondaire" data-fermer>Fermer</button>' +
+    '<button type="button" class="bouton-principal" id="btnLancerImpression">' + icone('i-printer') + ' Imprimer</button></div>'
+  );
+  $('btnLancerImpression').onclick = () => {
+    // Seule la feuille des codes est imprimée : le reste de la page est masqué par la feuille de style d'impression.
+    document.body.classList.add('impression-codes');
+    window.print();
+    document.body.classList.remove('impression-codes');
+  };
+}
+
 // ---------- Véhicules ----------
 
 async function ouvrirVehicules() {
@@ -298,6 +357,38 @@ function dessinerVehicules() {
   ).join('') || '<li class="aide">Aucun résultat.</li>';
   $('listeVehiculesAdmin').querySelectorAll('.ligne-admin').forEach((b) => {
     b.onclick = () => formulaireVehicule(adminVehicules[Number(b.dataset.index)]);
+  });
+}
+
+function dessinerEmailsAlerte() {
+  $('btnEmailsAlerte').innerHTML = icone('i-alert') +
+    '<span class="ligne-texte"><strong>Alerte de blocage des codes</strong>' +
+    '<small>' + echapper(adminEmailsAlerte.join(', ') || 'Aucune adresse') + '</small></span>' + icone('i-edit');
+}
+
+function formulaireEmailsAlerte() {
+  ouvrirModaleAdmin(
+    "<h2>Email d'alerte</h2>" +
+    '<p class="aide">Après 10 codes faux en 10 minutes, les connexions sont suspendues 10 minutes et un email part à ces adresses.</p>' +
+    '<label class="etiquette requis" for="admEmailsAlerte">Adresses (séparées par une virgule, 5 au maximum)</label>' +
+    '<input type="text" id="admEmailsAlerte" inputmode="email" autocomplete="off" value="' + echapper(adminEmailsAlerte.join(', ')) + '">' +
+    '<label class="case"><input type="checkbox" id="admEmailTest" checked> Envoyer un email de test</label>' +
+    '<p class="erreur-modale hidden"></p>' +
+    '<div class="boutons-modale">' +
+    '<button type="button" class="bouton-secondaire" data-fermer>Annuler</button>' +
+    '<button type="button" class="bouton-principal" id="admEnregistrerEmails">Enregistrer</button></div>'
+  );
+  const bouton = $('admEnregistrerEmails');
+  bouton.onclick = () => executerDepuisModale(bouton, async () => {
+    const emails = $('admEmailsAlerte').value.trim();
+    if (!emails) return erreurModale('Indiquez au moins une adresse.');
+    const test = $('admEmailTest').checked;
+    const reponse = await appelAdmin('admin.emails.alerte', { emails: emails, test: test });
+    adminEmailsAlerte = reponse.emailsAlerte;
+    if ($('btnEmailsAlerte')) dessinerEmailsAlerte();
+    fermerModaleAdmin();
+    if (reponse.avertissement) return afficherMessage('Adresses enregistrées. ' + reponse.avertissement);
+    afficherMessage('Adresses enregistrées.' + (test ? ' Un email de test est parti.' : ''), 'success');
   });
 }
 

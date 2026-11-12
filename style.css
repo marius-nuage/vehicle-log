@@ -746,3 +746,27 @@ button.saisie-admin { margin-bottom: 0; padding: 12px; }
 .reglage-seuil { display: flex; align-items: center; gap: 8px; margin: -4px 4px 10px; font-size: 0.85rem; color: var(--texte-doux); }
 .reglage-seuil .ic { width: 16px; height: 16px; color: var(--orange); }
 .reglage-seuil select { width: auto; padding: 6px 30px 6px 10px; font-size: 0.85rem; }
+
+/* Codes : actions et feuille imprimable */
+
+.actions-codes { display: flex; gap: 8px; margin-bottom: 8px; }
+.actions-codes .bouton-secondaire { flex: 1; gap: 6px; padding: 10px; font-size: 0.85rem; }
+.actions-codes .ic { width: 16px; height: 16px; }
+.reglage-email { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 10px; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 12px; background: #fff; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.reglage-email > .ic { width: 18px; height: 18px; flex: none; color: var(--orange); }
+.reglage-email > .ic:last-child { color: var(--texte-doux); }
+.reglage-email .ligne-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.reglage-email small { color: var(--texte-doux); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feuille-codes table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+.feuille-codes th { text-align: left; color: var(--texte-doux); font-weight: 600; border-bottom: 1px solid var(--bordure); padding: 6px 4px; }
+.feuille-codes td { border-bottom: 1px solid #edf1f4; padding: 7px 4px; }
+.feuille-codes td.code { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; letter-spacing: 0.08em; }
+.boutons-modale .bouton-principal .ic { width: 18px; height: 18px; }
+
+@media print {
+  body.impression-codes * { visibility: hidden; }
+  body.impression-codes #feuilleCodes, body.impression-codes #feuilleCodes * { visibility: visible; }
+  body.impression-codes #feuilleCodes { position: absolute; inset: 0 auto auto 0; width: 100%; }
+  body.impression-codes .modale { position: static; background: none; }
+  body.impression-codes .modale-boite { max-height: none; overflow: visible; }
+}

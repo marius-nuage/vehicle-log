@@ -31,6 +31,7 @@
       <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
       <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85"/></symbol>
       <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></symbol>
+      <symbol id="i-printer" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2M17 9V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4"/><rect x="7" y="13" width="10" height="8" rx="2"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
       <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.83 2.83 0 0 0-4-4L4 16v4M13.5 6.5l4 4"/></symbol>
@@ -71,9 +72,9 @@
 
     <section id="loginScreen" class="carte">
       <div class="carte-titre"><svg class="ic"><use href="#i-lock"/></svg><h2>Identification</h2></div>
-      <p class="aide">Entrez votre code personnel (6 chiffres, 8 pour un administrateur). Une connexion Internet est nécessaire la première fois.</p>
+      <p class="aide">Entrez votre code personnel à 8 chiffres. Une connexion Internet est nécessaire la première fois.</p>
       <form id="loginForm">
-        <input type="tel" id="driverCodeInput" class="champ-code" inputmode="numeric" maxlength="8" pattern="[0-9]{6,8}" required autocomplete="off" aria-label="Code conducteur" placeholder="••••••">
+        <input type="tel" id="driverCodeInput" class="champ-code" inputmode="numeric" maxlength="8" pattern="[0-9]{6,8}" required autocomplete="off" aria-label="Code conducteur" placeholder="••••••••">
         <button type="submit" class="bouton-principal">Valider mon code</button>
       </form>
     </section>

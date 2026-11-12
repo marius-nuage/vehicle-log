@@ -47,6 +47,7 @@ const supprimerSaisie = (id) => operation('saisies', 'readwrite', (m) => m.delet
 const lireSaisies = () => operation('saisies', 'readonly', (m) => m.getAll());
 const enregistrerConducteur = (c) => operation('conducteurs', 'readwrite', (m) => m.put(c));
 const lireConducteur = (code) => operation('conducteurs', 'readonly', (m) => m.get(code));
+const oublierConducteur = (code) => operation('conducteurs', 'readwrite', (m) => m.delete(code));
 
 // ---------- Session ----------
 
@@ -228,11 +229,69 @@ function demanderReferentiel(code) {
 
 // ---------- Code conducteur ----------
 
+// Le code enregistré ne marche plus (nouveau code ou compte désactivé) : retour à l'écran du code.
+// Les saisies déjà en file gardent leur code et partent quand même si c'est un ancien code régénéré.
+async function revoquerSession(reponse) {
+  const ancienCode = session.code;
+  ecrireSession(null);
+  session = null;
+  await oublierConducteur(ancienCode);
+  mettreAJourNavigation();
+  ecranCode.classList.remove('hidden');
+  afficherMessage(
+    (reponse.codeChange ? 'Votre code a changé.' : "Votre code n'est plus valide.") +
+    ' Entrez le nouveau code donné par votre administrateur. Vos saisies en attente seront quand même envoyées.',
+    'error', 0);
+}
+
+// ---------- Codes faux sur ce téléphone ----------
+
+// Après 3 codes faux, le téléphone impose une attente qui double à chaque nouvel échec (30 s, 1 min, 2 min... 15 min au plus).
+// Le script a sa propre limite ; celle-ci ralentit surtout les essais au hasard dans l'application.
+const ESSAIS_LIBRES = 3;
+const ATTENTE_MAX_S = 15 * 60;
+
+function lireEchecsCode() {
+  try {
+    return JSON.parse(localStorage.getItem('echecs_code')) || { nombre: 0, jusqua: 0 };
+  } catch (_) {
+    return { nombre: 0, jusqua: 0 };
+  }
+}
+
+function noterCodeFaux() {
+  const echecs = lireEchecsCode();
+  echecs.nombre++;
+  if (echecs.nombre >= ESSAIS_LIBRES) {
+    const attente = Math.min(30 * Math.pow(2, echecs.nombre - ESSAIS_LIBRES), ATTENTE_MAX_S);
+    echecs.jusqua = Date.now() + attente * 1000;
+  }
+  localStorage.setItem('echecs_code', JSON.stringify(echecs));
+  bloquerSaisieCode();
+}
+
+function bloquerSaisieCode() {
+  const bouton = formulaireCode.querySelector('button');
+  const restant = Math.ceil((lireEchecsCode().jusqua - Date.now()) / 1000);
+  if (restant <= 0) {
+    bouton.disabled = false;
+    bouton.textContent = 'Valider mon code';
+    return;
+  }
+  bouton.disabled = true;
+  bouton.textContent = 'Trop de codes faux : attendez ' + (restant >= 60 ? Math.floor(restant / 60) + ' min ' + String(restant % 60).padStart(2, '0') : restant + ' s');
+  clearTimeout(bloquerSaisieCode.minuterie);
+  bloquerSaisieCode.minuterie = setTimeout(bloquerSaisieCode, 1000);
+}
+
+bloquerSaisieCode();
+
 formulaireCode.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (lireEchecsCode().jusqua > Date.now()) return;
   const code = champCode.value.trim();
   if (!/^\d{6,8}$/.test(code)) {
-    afficherMessage('Le code doit comporter 6 chiffres (8 pour un administrateur).');
+    afficherMessage('Le code doit comporter 8 chiffres (6 pour les anciens codes).');
     return;
   }
 
@@ -241,9 +300,11 @@ formulaireCode.addEventListener('submit', async (e) => {
     try {
       const reponse = await demanderReferentiel(code);
       if (!reponse.ok) {
-        afficherMessage(reponse.erreur || 'Code non reconnu.');
+        if (!reponse.temporaire && !reponse.codeChange) noterCodeFaux();
+        afficherMessage(reponse.erreur || 'Code non reconnu.', 'error', 0);
         return;
       }
+      localStorage.removeItem('echecs_code');
       session = { code: code, nom: reponse.conducteur, role: reponse.role, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
       await enregistrerConducteur(session);
       ouvrirSession();
@@ -529,7 +590,10 @@ async function mettreAJourReferentiel() {
   if (!session) return;
   try {
     const reponse = await demanderReferentiel(session.code);
-    if (!reponse.ok) return;
+    if (!reponse.ok) {
+      if (!reponse.temporaire) await revoquerSession(reponse);
+      return;
+    }
     session = { code: session.code, nom: reponse.conducteur, role: reponse.role, conducteurs: reponse.conducteurs, vehicules: reponse.vehicules };
     ecrireSession(session);
     await enregistrerConducteur(session);
