@@ -255,6 +255,11 @@ select {
   padding-right: 36px;
 }
 
+.champ-verrouille { background: #eef2f7; color: var(--texte-doux); border-style: dashed; cursor: default; }
+.champ-verrouille:focus { box-shadow: none; border-color: var(--bordure); background: #eef2f7; }
+.aide-verrouille { display: flex; align-items: center; gap: 6px; margin: 6px 2px 0; font-size: 0.8rem; color: var(--texte-doux); }
+.aide-verrouille .ic { width: 14px; height: 14px; }
+
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--bleu);

@@ -116,10 +116,9 @@
         </fieldset>
 
         <div class="carte" id="carteConducteur">
-          <label for="conducteurSelect" class="etiquette requis"><svg class="ic"><use href="#i-user"/></svg>Nom du conducteur</label>
-          <select id="conducteurSelect" required>
-            <option value="">Sélectionner</option>
-          </select>
+          <label for="conducteurNom" class="etiquette"><svg class="ic"><use href="#i-user"/></svg>Nom du conducteur</label>
+          <input type="text" id="conducteurNom" class="champ-verrouille" readonly tabindex="-1">
+          <p class="aide-verrouille"><svg class="ic"><use href="#i-lock"/></svg>Rempli avec le nom lié à votre code.</p>
         </div>
 
         <div class="carte" id="carteVehicule">

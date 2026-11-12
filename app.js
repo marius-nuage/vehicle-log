@@ -86,7 +86,7 @@ const champCode = $('driverCodeInput');
 const nomConducteur = $('displayDriverName');
 const boutonChangerConducteur = $('btnLogout');
 const listeVehicules = $('vehiculeSelect');
-const listeConducteurs = $('conducteurSelect');
+const champConducteur = $('conducteurNom');
 const formulaireSaisie = $('logForm');
 const champKilometrage = $('kilometrageInput');
 const champDestination = $('destinationInput');
@@ -202,8 +202,8 @@ function remplirListe(liste, valeurs, valeurParDefaut) {
 
 function afficherEcranSaisie() {
   nomConducteur.textContent = session.nom;
-  // Une session enregistrée avant l'ajout de la liste n'a que le nom du titulaire du code.
-  remplirListe(listeConducteurs, session.conducteurs || [session.nom], session.nom);
+  // Le nom vient du code : personne ne peut saisir au nom d'un autre conducteur.
+  champConducteur.value = session.nom;
   remplirListe(listeVehicules, session.vehicules, '');
   afficherAideCommentaire();
   ecranCode.classList.add('hidden');
@@ -400,7 +400,6 @@ async function compresserPhoto(fichier) {
 formulaireSaisie.addEventListener('submit', async (e) => {
   e.preventDefault();
   const vehicule = listeVehicules.value;
-  const conducteur = listeConducteurs.value;
   const kilometrage = Number(champKilometrage.value);
   const destination = champDestination.value.trim();
   const carburant = document.querySelector('input[name="carburant"]:checked');
@@ -409,7 +408,6 @@ formulaireSaisie.addEventListener('submit', async (e) => {
 
   const champsManquants = [];
   if (!typeTrajet) champsManquants.push(['carteTrajet', "Type d'enregistrement du trajet", 'Choisissez « Début du trajet » ou « Fin du trajet ».']);
-  if (!conducteur) champsManquants.push(['carteConducteur', 'Nom du conducteur', 'Sélectionnez le nom du conducteur.']);
   if (!vehicule) champsManquants.push(['carteVehicule', 'Véhicule utilisé', 'Sélectionnez le véhicule.']);
   if (!champKilometrage.value) champsManquants.push(['carteKilometrage', 'Kilométrage actuel', 'Indiquez le kilométrage affiché au compteur.']);
   else if (!Number.isInteger(kilometrage) || kilometrage <= 0) champsManquants.push(['carteKilometrage', 'Kilométrage actuel', 'Le kilométrage doit être un nombre entier, sans virgule ni espace.']);
@@ -436,7 +434,7 @@ formulaireSaisie.addEventListener('submit', async (e) => {
       code: session.code,
       dateSaisie: new Date().toISOString(),
       typeTrajet: typeTrajet.value,
-      conducteur: conducteur,
+      conducteur: session.nom,
       vehicule: vehicule,
       kilometrage: kilometrage,
       destination: destination,
@@ -452,7 +450,7 @@ formulaireSaisie.addEventListener('submit', async (e) => {
 
   formulaireSaisie.reset();
   listeVehicules.value = vehicule;
-  listeConducteurs.value = conducteur;
+  champConducteur.value = session.nom;
   photoCompressee = '';
   apercuPhoto.style.display = 'none';
   libellePhoto.textContent = 'Prendre une photo (compteur, véhicule)';
