@@ -757,6 +757,7 @@ button.saisie-admin { margin-bottom: 0; padding: 12px; }
 .actions-codes { display: flex; gap: 8px; margin-bottom: 8px; }
 .actions-codes .bouton-secondaire { flex: 1; gap: 6px; padding: 10px; font-size: 0.85rem; }
 .actions-codes .ic { width: 16px; height: 16px; }
+.actions-codes .bouton-alerte { color: var(--orange); border-color: var(--orange); }
 .reglage-email { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 10px; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 12px; background: #fff; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .reglage-email > .ic { width: 18px; height: 18px; flex: none; color: var(--orange); }
 .reglage-email > .ic:last-child { color: var(--texte-doux); }

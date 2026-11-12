@@ -230,7 +230,8 @@ function demanderReferentiel(code) {
 // ---------- Code conducteur ----------
 
 // Le code enregistré ne marche plus (nouveau code ou compte désactivé) : retour à l'écran du code.
-// Les saisies déjà en file gardent leur code et partent quand même si c'est un ancien code régénéré.
+// Les saisies déjà en file gardent leur code : le script les accepte après le passage à 8 chiffres,
+// mais les refuse après un changement de tous les codes, quand l'ancien code a pu être deviné.
 async function revoquerSession(reponse) {
   const ancienCode = session.code;
   ecrireSession(null);
@@ -240,7 +241,8 @@ async function revoquerSession(reponse) {
   ecranCode.classList.remove('hidden');
   afficherMessage(
     (reponse.codeChange ? 'Votre code a changé.' : "Votre code n'est plus valide.") +
-    ' Entrez le nouveau code donné par votre administrateur. Vos saisies en attente seront quand même envoyées.',
+    ' Entrez le nouveau code donné par votre administrateur.' +
+    (reponse.saisiesRefusees ? '' : ' Vos saisies en attente seront quand même envoyées.'),
     'error', 0);
 }
 

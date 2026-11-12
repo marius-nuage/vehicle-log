@@ -177,12 +177,12 @@ async function ouvrirConducteurs() {
     '<button type="button" class="bouton-ajout" id="btnAjouterConducteur">' + icone('i-plus') + '<span>Ajouter</span></button>' +
     '</div><div class="actions-codes">' +
     '<button type="button" class="bouton-secondaire" id="btnImprimerCodes">' + icone('i-printer') + '<span>Imprimer les codes</span></button>' +
-    '<button type="button" class="bouton-secondaire" id="btnRegenererCodes">' + icone('i-lock') + '<span>Codes à 8 chiffres</span></button>' +
+    '<button type="button" class="bouton-secondaire bouton-alerte" id="btnChangerCodes">' + icone('i-lock') + '<span>Changer tous les codes</span></button>' +
     '</div><button type="button" class="reglage-email" id="btnEmailsAlerte"></button>' +
     '<p class="aide compteur-liste" id="compteurConducteurs"></p><ul class="liste-admin" id="listeConducteursAdmin"></ul>';
   $('rechercheConducteur').addEventListener('input', dessinerConducteurs);
   $('btnImprimerCodes').onclick = afficherListeCodes;
-  $('btnRegenererCodes').onclick = confirmerRegeneration;
+  $('btnChangerCodes').onclick = confirmerChangementCodes;
   $('btnEmailsAlerte').onclick = formulaireEmailsAlerte;
   dessinerEmailsAlerte();
   $('btnAjouterConducteur').onclick = () => formulaireConducteur(null);
@@ -195,10 +195,7 @@ function dessinerConducteurs() {
     .filter((c) => c.nom.toLowerCase().includes(filtre))
     .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
   const actifs = adminConducteurs.filter((c) => c.actif).length;
-  const codesCourts = adminConducteurs.filter((c) => c.code.length < 8).length;
-  $('compteurConducteurs').textContent = adminConducteurs.length + ' personnes, dont ' + actifs + ' actives' +
-    (codesCourts ? ' · ' + codesCourts + ' code(s) encore à 6 chiffres' : '');
-  $('btnRegenererCodes').classList.toggle('hidden', codesCourts === 0);
+  $('compteurConducteurs').textContent = adminConducteurs.length + ' personnes, dont ' + actifs + ' actives';
   $('listeConducteursAdmin').innerHTML = liste.map((c) =>
     '<li><button type="button" class="ligne-admin" data-code="' + echapper(c.code) + '">' +
     '<span class="pastille' + (c.role === 'admin' ? ' admin' : '') + '">' + icone(c.role === 'admin' ? 'i-shield' : 'i-user') + '</span>' +
@@ -278,23 +275,31 @@ function formulaireConducteur(conducteur) {
 
 // ---------- Codes : passage à 8 chiffres et liste imprimable ----------
 
-function confirmerRegeneration() {
-  const nombre = adminConducteurs.filter((c) => c.role === 'conducteur' && c.code.length < 8).length;
+function confirmerChangementCodes() {
   confirmer(
-    'Passer ' + nombre + ' code(s) à 8 chiffres ?',
-    'Chaque conducteur dont le code a 6 chiffres reçoit un nouveau code à 8 chiffres. À sa prochaine connexion, ' +
-    "l'application lui demandera le nouveau code. Ses saisies déjà en attente sur le téléphone seront quand même acceptées. " +
+    'Changer les ' + adminConducteurs.length + ' codes ?',
+    'À utiliser si quelqu\'un essaie de deviner des codes. Tout le monde reçoit un nouveau code, vous compris ; ' +
+    'votre téléphone garde votre connexion. Les autres devront entrer leur nouveau code, et les saisies pas encore ' +
+    'envoyées avec l\'ancien code seront refusées. Demandez si possible aux conducteurs de synchroniser avant. ' +
     'Imprimez ensuite la liste pour remettre les codes.',
-    'Générer les nouveaux codes',
+    'Changer tous les codes',
     async () => {
       const reponse = await appelAdmin('admin.codes.regenerer');
+      if (reponse.nouveauCodeAdmin) {
+        // Sans cette mise à jour, l'admin serait déconnecté par son propre changement de codes.
+        const ancienCode = session.code;
+        session.code = reponse.nouveauCodeAdmin;
+        ecrireSession(session);
+        await oublierConducteur(ancienCode);
+        await enregistrerConducteur(session);
+      }
       adminConducteurs = reponse.conducteurs;
       dessinerConducteurs();
-      afficherMessage(reponse.nombre + ' code(s) changé(s).', 'success');
+      afficherMessage(reponse.nombre + ' codes changés. Votre nouveau code : ' + session.code + '.', 'success', 0);
       afficherListeCodes();
     }
   );
-  $('btnConfirmer').classList.replace('bouton-danger', 'bouton-principal');
+  contenuModaleAdmin.querySelector('.modale-icone').innerHTML = icone('i-lock');
 }
 
 function afficherListeCodes() {
