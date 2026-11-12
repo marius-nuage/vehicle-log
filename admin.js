@@ -504,7 +504,7 @@ async function ouvrirDonnees() {
     '<div class="bandeau-filtre" id="bandeauFiltre"></div>' +
     '<div id="listeSaisiesAdmin"></div>' +
     '<nav class="pagination hidden" id="paginationDonnees" aria-label="Pages"></nav>' +
-    '<button type="button" class="bouton-export" id="btnExporter">' + icone('i-list') + '<span>Exporter le résultat en CSV (Excel)</span></button>';
+    '<button type="button" class="bouton-export" id="btnExporter">' + icone('i-list') + '<span>Exporter en Excel</span></button>';
 
   vueAdmin.querySelectorAll('[data-tuile]').forEach((tuile) => {
     tuile.onclick = () => choisirTuile(tuile.dataset.tuile);
@@ -528,7 +528,7 @@ async function ouvrirDonnees() {
       rechargerDepuisPage1();
     }, 600);
   };
-  $('btnExporter').onclick = exporterCsv;
+  $('btnExporter').onclick = exporterExcel;
   chargerSaisies();
 }
 
@@ -682,31 +682,50 @@ function dessinerPagination(pages) {
   });
 }
 
-async function exporterCsv() {
+// ExcelJS pèse environ 1 Mo : il n'est téléchargé qu'au premier export, jamais pour les conducteurs.
+let chargementExcel = null;
+
+function chargerScript(adresse) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = adresse;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('module Excel introuvable, vérifiez la connexion'));
+    document.head.appendChild(script);
+  });
+}
+
+function chargerModuleExcel() {
+  if (!chargementExcel) {
+    chargementExcel = chargerScript('lib/exceljs.min.js').then(() => chargerScript('export-excel.js'));
+    chargementExcel.catch(() => { chargementExcel = null; });
+  }
+  return chargementExcel;
+}
+
+async function exporterExcel() {
   if (!navigator.onLine) return afficherMessage("Pas de connexion Internet : l'export est impossible.");
   const bouton = $('btnExporter');
   bouton.disabled = true;
-  changerTexteBouton(bouton, 'Préparation du fichier...');
+  changerTexteBouton(bouton, 'Préparation du fichier Excel...');
   try {
-    const reponse = await appelAdmin('admin.saisies', { ...criteresDonnees(), export: true });
-    const colonnes = ['Date/heure saisie', 'Date/heure réception', 'Type de trajet', 'Véhicule', 'Conducteur', 'Kilométrage', 'Destination', 'Carburant', 'Commentaire', 'Photo', 'ID saisie'];
-    const champs = ['dateSaisie', 'dateReception', 'typeTrajet', 'vehicule', 'conducteur', 'kilometrage', 'destination', 'carburant', 'commentaire', 'photo', 'id'];
-    const cellule = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    // Point-virgule et BOM UTF-8 : Excel en français ouvre alors le fichier avec les bonnes colonnes et les accents.
-    const contenu = '﻿' + [colonnes.map(cellule).join(';')]
-      .concat(reponse.saisies.map((s) => champs.map((c) => cellule(s[c])).join(';')))
-      .join('\r\n');
+    const criteres = criteresDonnees();
+    const [reponse] = await Promise.all([
+      appelAdmin('admin.saisies', { ...criteres, export: true }),
+      chargerModuleExcel()
+    ]);
+    const contenu = await construireClasseurExcel(reponse.saisies, criteres, session.nom);
     const lien = document.createElement('a');
-    lien.href = URL.createObjectURL(new Blob([contenu], { type: 'text/csv;charset=utf-8' }));
-    lien.download = 'daily-vehicle-log_' + dateDuJour() + '.csv';
+    lien.href = URL.createObjectURL(new Blob([contenu], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    lien.download = 'daily-vehicle-log_' + dateDuJour() + '.xlsx';
     lien.click();
     setTimeout(() => URL.revokeObjectURL(lien.href), 5000);
-    afficherMessage(reponse.saisies.length + ' saisie(s) exportée(s).', 'success');
+    afficherMessage(reponse.saisies.length + ' saisie(s) exportée(s) dans le fichier Excel.', 'success');
   } catch (err) {
     afficherMessage('Export impossible : ' + err.message);
   } finally {
     bouton.disabled = false;
-    changerTexteBouton(bouton, 'Exporter le résultat en CSV (Excel)');
+    changerTexteBouton(bouton, 'Exporter en Excel');
   }
 }
 
